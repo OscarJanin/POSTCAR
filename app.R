@@ -2,7 +2,8 @@ library(reshape2)         # transformation format long, format large
 library(sp)               # objets spatiaux
 library(rgdal)            # fonctions de la bibliothèque GDAL
 library(ggplot2)          # fonctions graphiques
-library(ggthemes)         # thèmes pour ggplot
+library(ggthemes)  
+library(gstat)             # thèmes pour ggplot
 library(grid)             # fonction arrow
 library(cartography)      # cartographie thématique
 library(RColorBrewer)     # palettes de couleurs de C. Brewer
@@ -14,15 +15,23 @@ library(leaflet)
 library(shinyjs)
 library(shinycssloaders)
 library(shinydashboard)
+library(shinythemes)
+library(emojifont)
+library(raster)
+library(SpatialPosition)
+
+
 
 commData <- merge(comm,tabflow6, by.x="insee", by.y = "ORI")
 
 coordCom <- coordcom
 
+mapSelected <- "mapIndic"
 
 
 ui<- bootstrapPage(
   # element d'affichage de la page
+  theme = shinytheme("superhero"),
   useShinyjs(),
   tags$style(type = "text/css", "html, body {width:100%;height:100%}"),
   
@@ -30,9 +39,14 @@ ui<- bootstrapPage(
   #######            Map           #######
        ############################## 
   
+  # textOutput("map"), 
 
-  leafletOutput("mymap", width="100%", height = "100%"),
+  # leafletOutput("mapIndic", width="100%", height = "100%"),
+  # 
+  # leafletOutput("mapvis", width="100%", height = "100%"),
   
+  
+  leafletOutput(mapSelected, width="100%", height = "100%"),
   
        ##############################
   #######   Panneau des Scénarios  #######
@@ -60,15 +74,16 @@ ui<- bootstrapPage(
       ############################## 
   
   absolutePanel( class = "panel panel-default",
+                 style = "padding : 10px",
                  top = "10%", 
                  left = "2%",
-    tabsetPanel(id = "tabset1", 
+    tabsetPanel(id = "tabs", 
                        
                   ##############################
                   ####### Panneau Mobilité #####
                   ##############################  
                   
-                  tabPanel("Mobilité", class="btn-group-vertical",
+                  tabPanel("Mobilité", value = leafletOutput("mapIndic", width="100%", height = "100%"), class="btn-group-vertical",
                           
                               actionButton("Gravitation", "Gravitation"),
                               actionButton("Contention", "Auto-Contention"),
@@ -82,7 +97,7 @@ ui<- bootstrapPage(
                   ####### Panneau Desserte #####
                   ##############################
                   
-                  tabPanel("Desserte",
+                  tabPanel("Desserte", value = leafletOutput("mapvis", width="100%", height = "100%"),
                            selectInput("viscom", 
                                        label = "Choisir une commune",
                                        choices = sort(coordCom$LIBGEO),
@@ -179,6 +194,26 @@ ui<- bootstrapPage(
 
 server <- function(input, output, session) {
   #Indiquez ici le chemin de tout les attributs a cartographier
+
+  observeEvent(input$tabs == "Mobilité", {
+    mapSelected <- "mapIndic"
+  })
+  observeEvent(input$tabs == "Desserte", {
+    mapSelected <- "mapvis"
+  })
+
+  
+  # if(input$tabs == "Mobilité") {
+  #   mapSelected <- "mapIndic"
+  # } else if (input$tabs == "Mobilité") {
+  #   mapSelected <- "mapIndic"
+  # } else { 
+  #   return(NULL)
+  # }
+  # 
+  
+  # output$map <- renderText({paste0("You are viewing tab \"", input$tabs, "\"")})
+  
   v <- reactiveValues(data = commData$Gravitation)
   addClass("Gravitation", "btn-warning active")
   
@@ -224,8 +259,10 @@ server <- function(input, output, session) {
   })  
   
   
+  
+  
 
-  output$mymap <- renderLeaflet({
+  output$mapIndic <- renderLeaflet({
     leaflet(commData, options = leafletOptions(minZoom = 9, zoomControl = FALSE)) %>%  
       addProviderTiles(
            providers$"CartoDB.DarkMatter") %>% 
@@ -272,6 +309,61 @@ server <- function(input, output, session) {
                  lng2 = 3.55,
                  lat2 = 49.23)
   })
+  
+  ##############################
+  #####    Map Desserte    #####
+  ##############################
+  
+  output$mapvis <- renderLeaflet({
+    leaflet() %>% 
+      addProviderTiles(provider = "CartoDB.DarkMatter") %>% 
+      fitBounds(lng1 = 1.44, lat1 = 48.12, lng2 = 3.55, lat2 = 49.24)
+  })
+  
+  observe({
+    codCom <- coordCom$CODGEO[coordCom$LIBGEO == input$viscom]
+    oneCom <- st_centroid(pomaCom[pomaCom$CODGEO == codCom, ])
+    leafletProxy("mapvis") %>%
+      clearShapes() %>% clearMarkers() %>% 
+      addPolygons(data = DrawVis(), color = "grey", weight = 1, fill = TRUE, fillColor = c("black", "white"), fillOpacity = 0.3) %>% 
+      addCircleMarkers(data = oneCom, stroke = FALSE, fill = TRUE, radius = 8, fillOpacity = 0.8, fillColor = "firebrick")
+  })
+  
+  DrawVis <- reactive({
+    req(input$visthr)
+    contVis <- DrawVisibleZone(ras = listPotentials[[1]], onetime = GetOneCoord(), thres = input$visthr)
+    return(contVis)
+  })
+  
+  DrawVisibleZone <- function(ras, onetime, thres){
+    timeInterpol <- gstat(id = "VAL", formula = VAL ~ 1, locations = ~ X1 + X2, data = onetime, nmax = 10)
+    rasTime <- interpolate(ras, timeInterpol, xyOnly = TRUE, xyNames = c("X1", "X2"))
+    rasTime <- mask(rasTime, ras)
+    valRas <- c(as.matrix(rasTime))
+    valRasMax <- max(valRas, na.rm = TRUE)
+    contThres <- rasterToContourPoly(r = rasTime, breaks = c(0, thres, ceiling(valRasMax)))
+    contThres <- st_as_sf(spTransform(contThres, CRSobj = CRS("+init=epsg:4326")))
+    return(contThres)
+  }
+  
+  GetOneCoord <- reactive({
+    req(input$viscom)
+    oneCoord <- GetTime(tabcoords = coordCom, 
+                        tabtime = listTimes[[input$vismod]], 
+                        ref = input$visref, 
+                        oneunit = coordCom$CODGEO[coordCom$LIBGEO == input$viscom])
+    return(oneCoord)
+  })
+  
+  
+  GetTime <- function(tabcoords, tabtime, ref, oneunit){
+    oriDes <- c("ORI", "DES")
+    invRef <- oriDes[oriDes != ref]
+    oneTime <- tabtime[tabtime[[ref]] == oneunit, ]
+    oneTimeCoords <- tabcoords %>% left_join(oneTime, by = c("CODGEO" = invRef)) %>% filter(!is.na(VAL))
+    return(oneTimeCoords)
+  }
+  
 }
 
 # labels <- sprintf(
@@ -280,4 +372,3 @@ server <- function(input, output, session) {
 # ) %>% lapply(htmltools::HTML)
 
 shinyApp(ui = ui, server = server)
-
