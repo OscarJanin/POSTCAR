@@ -20,10 +20,22 @@ library(emojifont)
 library(raster)
 library(SpatialPosition)
 
+data_PCR <- readRDS("C:/Users/Bureau des MCFs/Desktop/Postcar/Dev/Tuto/PremiereAppliShiny/data/data_PCR.Rds")
+pomaTable <- readRDS("C:/Users/Bureau des MCFs/Desktop/Postcar/Dev/Tuto/PremiereAppliShiny/data/pomatable.Rds")
+coordcom <- readRDS("C:/Users/Bureau des MCFs/Desktop/Postcar/Dev/Tuto/PremiereAppliShiny/data/coordcom.Rds")
+listtimes <- readRDS("C:/Users/Bureau des MCFs/Desktop/Postcar/Dev/Tuto/PremiereAppliShiny/data/listtimes.Rds")
+pomaCom <- readRDS(file = "C:/Users/Bureau des MCFs/Desktop/Postcar/Dev/Tuto/PremiereAppliShiny/data/pomacom.Rds")
+listTimes <- readRDS(file = "C:/Users/Bureau des MCFs/Desktop/Postcar/Dev/Tuto/PremiereAppliShiny/data/listtimes.Rds")
+listPotentials <- readRDS(file = "C:/Users/Bureau des MCFs/Desktop/Postcar/Dev/Tuto/PremiereAppliShiny/data/listpotentials.Rds")
+pomaTable <- readRDS(file = "C:/Users/Bureau des MCFs/Desktop/Postcar/Dev/Tuto/PremiereAppliShiny/data/pomatable.Rds")
+tabFlows <- readRDS(file = "C:/Users/Bureau des MCFs/Desktop/Postcar/Dev/Tuto/PremiereAppliShiny/data/tabflows.Rds")
+listCondor <- readRDS(file = "C:/Users/Bureau des MCFs/Desktop/Postcar/Dev/Tuto/PremiereAppliShiny/data/condorcet.Rds")
 
 
-commData <- merge(comm,tabflow6, by.x="insee", by.y = "ORI")
+comm <- read_sf(dsn = "C:/Users/Bureau des MCFs/Desktop/Postcar/Dev/Tuto/PremiereAppliShiny/data/les-communes-generalisees-dile-de-france.shp")
 
+
+commData <- merge(comm,data_PCR, by.x="insee", by.y = "ORI")
 coordCom <- coordcom
 
 
@@ -52,9 +64,9 @@ ui<- bootstrapPage(
                   }
                   ")),
   
-  ##############################
+        ##############################
   #######            Map           #######
-  ############################## 
+        ############################## 
   
   
   conditionalPanel(
