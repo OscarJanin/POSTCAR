@@ -33,7 +33,8 @@ listCondor <- readRDS(file = "C:/Users/Bureau des MCFs/Desktop/Postcar/Dev/Tuto/
 
 
 comm <- read_sf(dsn = "C:/Users/Bureau des MCFs/Desktop/Postcar/Dev/Tuto/PremiereAppliShiny/data/les-communes-generalisees-dile-de-france.shp")
-
+vferre <- read_sf(dsn = "C:/Users/Bureau des MCFs/Desktop/Postcar/Dev/Tuto/PremiereAppliShiny/data/traces-du-reseau-ferre-idf.shp")
+routier <- read_sf(dsn = "C:/Users/Bureau des MCFs/Desktop/Postcar/Dev/Tuto/PremiereAppliShiny/data/Réseau_routier_magistral_existant_de_la_Région_ÎledeFrance_inscrit_sur_la_CDGT_du_Sdrif_approuvé_par_décret_le_27_décembre_2013.shp")
 
 commData <- merge(comm,data_PCR, by.x="insee", by.y = "ORI")
 coordCom <- coordcom
@@ -50,36 +51,25 @@ ui<- bootstrapPage(
                   #mapIndic {
                   position: absolute;
                   }
-                  #mapvis {
-                  position: absolute;
-                  }
-                  #mapsyn {
-                  position: absolute;
-                  }
                   #mapflu {
                   position: absolute;
                   }
                   #mappot {
                   position: absolute;
                   }
+                  #mapfluDom {
+                  position: absolute;
+                  }
                   ")),
   
-        ##############################
+  ##############################
   #######            Map           #######
-        ############################## 
+  ############################## 
   
   
   conditionalPanel(
     condition = "input.tabs=='Mobilité'",
     leafletOutput("mapIndic", width="100%", height = "100%")
-  ),
-  conditionalPanel(
-    condition = "input.tabs=='Desserte'",
-    leafletOutput("mapvis", width="100%", height = "100%")
-  ),
-  conditionalPanel(
-    condition = "input.tabs=='Vitesse'",
-    leafletOutput("mapsyn", width="100%", height = "100%")
   ),
   conditionalPanel(
     condition = "input.tabs=='Flux'",
@@ -88,6 +78,10 @@ ui<- bootstrapPage(
   conditionalPanel(
     condition = "input.tabs=='Bassin'",
     leafletOutput("mappot", width="100%", height = "100%")
+  ),
+  conditionalPanel(
+    condition = "input.tabs=='FluxDom'",
+    leafletOutput("mapfluDom", width="100%", height = "100%")
   ),
   
   ##############################
@@ -125,55 +119,13 @@ ui<- bootstrapPage(
                              ####### Panneau Mobilité #####
                              ##############################  
                              
-                             tabPanel("Mobilité", class="btn-group-vertical",
-                                      
-                                      actionButton("Gravitation", "Gravitation"),
-                                      actionButton("Contention", "Auto-Contention"),
-                                      actionButton("Suffisance", "Auto-Suffisance"),
-                                      actionButton("Dependance", "Dépendance"),
-                                      actionButton("Mobilite", "Mobilité")
-                             ),
-                             
-                             ##############################
-                             ####### Panneau Desserte #####
-                             ##############################
-                             
-                             tabPanel("Desserte",
-                                      selectInput("viscom", 
-                                                  label = "Choisir une commune",
-                                                  choices = sort(coordCom$LIBGEO),
-                                                  selected = ""),
-                                      radioButtons("visref", label = "Origine ou destination", choices = c("Origine" = "ORI", "Destination" = "DES"), selected = "ORI"),
-                                      radioButtons("vismod", label = "Mode de transport", choices = c("Transport en commun" = "TC", "Voiture (matin)" = "VPM", "Voiture (soir)" = "VPS"), selected = "TC"),
-                                      sliderInput("visthr", label = "Seuil temporel", min = 15, max = 120, step = 15, value = 60),
-                                      tags$br(),
-                                      actionButton("vis1_descr", "Description"),
-                                      tags$br(),
-                                      actionButton("vis1_exemp", "Clés de lecture"),
-                                      tags$br(),
-                                      actionButton("vis1_donne", "Détails techniques")
-                             ),
-                             
-                             ##############################
-                             ####### Panneau Vitesse  #####
-                             ##############################
-                             
-                             tabPanel("Vitesse",
-                                      selectInput("viscom", 
-                                                  label = "Choisir une commune",
-                                                  choices = sort(coordCom$LIBGEO),
-                                                  selected = ""),
-                                      radioButtons("visref", label = "Origine ou destination", choices = c("Origine" = "ORI", "Destination" = "DES"), selected = "ORI"),
-                                      radioButtons("vismod", label = "Mode de transport", choices = c("Transport en commun" = "TC", "Voiture (matin)" = "VPM", "Voiture (soir)" = "VPS"), selected = "TC"),
-                                      sliderInput("visthr", label = "Seuil temporel", min = 15, max = 120, step = 15, value = 60),
-                                      tags$br(),
-                                      actionButton("vis1_descr", "Description"),
-                                      tags$br(),
-                                      actionButton("vis1_exemp", "Clés de lecture"),
-                                      tags$br(),
-                                      actionButton("vis1_donne", "Détails techniques")
-                                      ,
-                                      plotOutput("grapoma", width = "100%")
+                             tabPanel("Mobilité", 
+                                      radioButtons("radioMobi", label = NULL,
+                                                   choices = list("Gravitation" = "Gravitation",
+                                                                  "Auto-Contention" = "Contention",
+                                                                  "Auto-Suffisance" = "Suffisance",
+                                                                  "Dépendance" = "Dependance",
+                                                                  "Mobilité" = "Mobilite"))
                              ),
                              
                              ##############################
@@ -225,7 +177,19 @@ ui<- bootstrapPage(
                                       tags$br(),
                                       actionButton("vis4_exemp", "Clés de lecture"),
                                       tags$br(),
-                                      actionButton("vis4_donne", "Détails techniques"))
+                                      actionButton("vis4_donne", "Détails techniques")
+                              ),
+                             
+                             ##############################
+                             ####### Panneau FluxDom  #####
+                             ##############################
+                             
+                             tabPanel("FluxDom",
+                                      radioButtons("radioFlu", label = NULL,
+                                                   choices = list("Emploi" = "iEmploi",
+                                                                  "Population" = "iPopulation",
+                                                                  "Emploi et Population" = "iEmpPop"))
+                                      )
                  )
   )
   )
@@ -233,48 +197,42 @@ ui<- bootstrapPage(
 server <- function(input, output, session) {
   
   v <- reactiveValues(data = commData$Gravitation)
-  addClass("Gravitation", "btn-warning active")
   
-  observeEvent(input$Gravitation, {
-    removeClass("Contention", "btn-warning active")
-    removeClass("Suffisance", "btn-warning active")
-    removeClass("Dependance", "btn-warning active")
-    removeClass("Mobilite", "btn-warning active")
-    addClass("Gravitation", "btn-warning active")
-    v$data <- commData$Gravitation
+  observeEvent(input$radioMobi,{
+    if(input$radioMobi=="Gravitation"){
+      v$data <- commData$Gravitation}
+    if(input$radioMobi=="Contention"){
+      v$data <- commData$AutoContention}
+    if(input$radioMobi=="Suffisance"){
+      v$data <- commData$AutoSuffisance}
+    if(input$radioMobi=="Dependance"){
+      v$data <- commData$Dependance}
+    if(input$radioMobi=="Mobilite"){
+      v$data <- commData$Mobilite}
   })
-  observeEvent(input$Contention, {
-    removeClass("Gravitation", "btn-warning active")
-    removeClass("Suffisance", "btn-warning active")
-    removeClass("Dependance", "btn-warning active")
-    removeClass("Mobilite", "btn-warning active")
-    addClass("Contention", "btn-warning active")
-    v$data <- commData$AutoContention
+  
+  f <- reactiveValues(dataflu = spLinksEmploi)
+  r <- reactiveValues(rayon = rayonEmploi)
+  c <- reactiveValues(col = totDes$col)
+  vc <- reactiveValues(valCercle = totDes$EMPLOI)
+  
+  observeEvent(input$radioFlu,{
+    if(input$radioFlu=="iEmploi"){
+      f$dataflu <- spLinksEmploi
+      r$rayon <- rayonEmploi
+      c$col <- totDes$col
+      vc$valCercle <- totDes$EMPLOI}
+    if(input$radioFlu=="iPopulation"){
+      f$dataflu <- spLinksPop
+      r$rayon <- rayonPopulation
+      c$col <- totOri$col
+      vc$valCercle <- totOri$POPULATION}
+    if(input$radioFlu=="iEmpPop"){
+      f$dataflu <- spLinksEmploiPop
+      r$rayon <- rayonEmploiPop
+      c$col <- totOriDes$col
+      vc$valCercle <- totOriDes$POPetEMPLOI}
   })
-  observeEvent(input$Suffisance, {
-    removeClass("Gravitation", "btn-warning active")
-    removeClass("Dependance", "btn-warning active")
-    removeClass("Mobilite", "btn-warning active")
-    removeClass("Contention", "btn-warning active")
-    addClass("Suffisance", "btn-warning active")
-    v$data <- commData$AutoSuffisance
-  }) 
-  observeEvent(input$Dependance, {
-    removeClass("Gravitation", "btn-warning active")
-    removeClass("Mobilite", "btn-warning active")
-    removeClass("Contention", "btn-warning active")
-    removeClass("Suffisance", "btn-warning active")
-    addClass("Dependance", "btn-warning active")
-    v$data <- commData$Dependance
-  })
-  observeEvent(input$Mobilite, {
-    removeClass("Gravitation", "btn-warning active")
-    removeClass("Contention", "btn-warning active")
-    removeClass("Suffisance", "btn-warning active")
-    removeClass("Dependance", "btn-warning active")
-    addClass("Mobilite", "btn-warning active")
-    v$data <- commData$Mobilite
-  })  
   
   ##############################
   #####  Map indicateurs   #####
@@ -285,7 +243,7 @@ server <- function(input, output, session) {
       addProviderTiles(
         providers$"CartoDB.DarkMatter") %>% 
       addPolygons(
-        fillColor = ~colorBin(palette = "YlOrRd", 
+        fillColor = ~colorBin(palette = "Purples", 
                               bins = getBreaks(v$data, 
                                                nclass = 6, 
                                                method = "fisher-jenks"),
@@ -294,12 +252,12 @@ server <- function(input, output, session) {
         weight = 1,
         opacity = 0.3,
         color = "white",
-        fillOpacity = 0.3,
+        fillOpacity = 0.5,
         highlight = highlightOptions(
           weight = 3,
           color = "white",
           opacity = 1,
-          fillOpacity = 0.5,
+          fillOpacity = 0.7,
           bringToFront = TRUE),
         label = sprintf(
           "<strong>%s</strong><br/> valeur : %g",
@@ -312,14 +270,14 @@ server <- function(input, output, session) {
           textsize = "15px",
           direction = "auto")) %>%
       addLegend(
-        pal = colorBin(palette = "YlOrRd", 
+        pal = colorBin(palette = "Purples", 
                        bins = getBreaks(v$data, 
                                         nclass = 6, 
                                         method = "fisher-jenks"),
                        domain = v$data, 
                        pretty = TRUE), 
         values = ~v$data, 
-        opacity = 0.7, 
+        opacity = 0.5, 
         title = NULL,
         position = "bottomright") %>%
       setMaxBounds(lng1 = 1.44,
@@ -327,49 +285,6 @@ server <- function(input, output, session) {
                    lng2 = 3.55,
                    lat2 = 49.23)
   })
-  
-  ##############################
-  #####    Map Desserte    #####
-  ##############################
-  
-  output$mapvis <- renderLeaflet({
-    leaflet() %>% 
-      addProviderTiles(provider = "CartoDB.DarkMatter") %>% 
-      fitBounds(lng1 = 1.44, lat1 = 48.12, lng2 = 3.55, lat2 = 49.24)
-  })
-  
-  observe({
-    codCom <- coordCom$CODGEO[coordCom$LIBGEO == input$viscom]
-    oneCom <- st_centroid(pomaCom[pomaCom$CODGEO == codCom, ])
-    leafletProxy("mapvis") %>%
-      clearShapes() %>% clearMarkers() %>% 
-      addPolygons(data = DrawVis(), color = "grey", weight = 1, fill = TRUE, fillColor = c("black", "white"), fillOpacity = 0.3) %>% 
-      addCircleMarkers(data = oneCom, stroke = FALSE, fill = TRUE, radius = 8, fillOpacity = 0.8, fillColor = "firebrick")
-  })
-  
-  ##############################
-  #####    Map Vitesse     #####
-  ##############################
-  
-  ##Graph Vitesse
-  output$grapoma <- renderPlot({
-    PomaPlot(tabsum = pomaTable, mod = input$synmod)
-  })
-  
-  # output$mapsyn <- renderLeaflet({
-  #   leaflet() %>%
-  #     addProviderTiles(provider = "CartoDB.DarkMatter") %>%
-  #     fitBounds(lng1 = 1.44, lat1 = 48.12, lng2 = 3.55, lat2 = 49.24)
-  # })
-  # 
-  # observe({
-  #   varCarto <- paste0("CLASS", input$synmod)
-  #   colPal <- c("tan3", "chartreuse4", "firebrick", "goldenrod")
-  #   FctPal <- colorFactor(palette = colPal, levels = c("0_0", "0_1", "1_0", "1_1"), na.color = "transparent")
-  #   leafletProxy("mapsyn") %>%
-  #     clearShapes() %>%
-  #     addPolygons(data = pomaCom, stroke = TRUE, weight = 0.5, color = "grey", fill = TRUE, fillColor = ~FctPal(eval(parse(text = varCarto))), fillOpacity = 0.4, label = pomaCom$LIBGEO)
-  # })
   
   ##############################
   #####      Map Flux      #####
@@ -380,7 +295,7 @@ server <- function(input, output, session) {
       addProviderTiles(provider = "CartoDB.DarkMatter") %>%
       fitBounds(lng1 = 1.44, lat1 = 48.12, lng2 = 3.55, lat2 = 49.24)
   })
-
+  
   observe({
     topDes <- GetTopLinks()
     leafletProxy("mapflu") %>%
@@ -398,7 +313,7 @@ server <- function(input, output, session) {
       addProviderTiles(provider = "CartoDB.DarkMatter") %>%
       fitBounds(lng1 = 1.44, lat1 = 48.12, lng2 = 3.55, lat2 = 49.24)
   })
-
+  
   observe({
     if(input$pottyp == "dif"){
       leafletProxy("mappot") %>%
@@ -431,6 +346,64 @@ server <- function(input, output, session) {
                              "Faible densité d'emplois (destination)"))
     }
   })
+  
+  ##############################
+  #####    Map FluDom      #####
+  ##############################
+
+  output$mapfluDom <- renderLeaflet({
+    leaflet() %>%
+      addMapPane("background_map", zIndex = 410) %>%    # Level 1
+      addMapPane("communes", zIndex = 420) %>%          # Level 2
+      addMapPane("réseau_routier", zIndex = 430) %>%    # Level 3
+      addMapPane("voie_ferré", zIndex = 440) %>%        # Level 4
+      addMapPane("flux", zIndex = 450) %>%              # Level 5
+      addMapPane("cercles", zIndex = 460) %>%           # Level 6
+      
+      addProviderTiles(provider = "CartoDB.DarkMatter",
+                       options = pathOptions(pane = "background_map")) %>%
+      
+      addLayersControl(
+        overlayGroups = c("Communes", "Réseau routier principal", "Réseau ferré"),
+        options = layersControlOptions(collapsed = FALSE)
+      ) %>% 
+      
+      addPolygons(data = st_transform(commsf, crs = 4326), stroke = TRUE, weight = 0.5, opacity = 0.5, color = "grey", fill = TRUE,
+                              fillColor = "ghostwhite", fillOpacity = 0, group = "Communes",
+                    options = pathOptions(pane = "communes")) %>% 
+      addPolylines(data = st_transform(routier, crs = 4326), color = "grey", opacity = 0.6, weight = 1.3 ,
+                   stroke = TRUE, group = "Réseau routier principal",
+                   options = pathOptions(pane = "réseau_routier")) %>% 
+      addPolylines(data = st_transform(vferre, crs = 4326), color = "grey", opacity = 0.6, weight = 1.3 ,
+                   stroke = TRUE, group = "Réseau ferré",  dashArray = 2,
+                   options = pathOptions(pane = "voie_ferré")) %>% 
+      addPolylines(data = st_transform(f$dataflu, crs = 4326), color = "white", opacity = 0.6, weight = f$dataflu$weight ,
+                   stroke = TRUE,
+                   options = pathOptions(pane = "flux")) %>% 
+    addCircles(lng = totDes$lon, lat = totDes$lat, radius = r$rayon, color = c$col, stroke = F,
+               highlight = highlightOptions(
+                 weight = 3,
+                 color = "white",
+                 opacity = 1,
+                 fillOpacity = 0.7,
+                 bringToFront = F),
+               label = sprintf(
+                 "<strong>%s</strong><br/> Valeur : %.0f", 
+                 totDes$nomcom,
+                 vc$valCercle
+               )%>% lapply(htmltools::HTML),
+               labelOptions = labelOptions(
+                 style = list("font-weight" = "normal", 
+                              padding = "3px 8px"),
+                 textsize = "15px",
+                 direction = "auto"),
+               options = pathOptions(pane = "cercles")
+               ) %>% 
+      hideGroup("Réseau routier principal") %>% 
+      hideGroup("Réseau ferré") %>% 
+      hideGroup("Communes")
+  })
+  
   
   ##############################
   #####      Function      #####
@@ -471,18 +444,6 @@ server <- function(input, output, session) {
     return(topLinks)
   })
   
-  DrawVis <- reactive({
-    req(input$visthr)
-    contVis <- DrawVisibleZone(ras = listPotentials[[1]], onetime = GetOneCoord(), thres = input$visthr)
-    return(contVis)
-  })
-  
-  DrawPoma <- reactive({
-    req(input$synmod)
-    varCarto <- paste0("CLASS", input$synmod)
-    selPoma <- pomaCom
-    return(contVis)
-  })
   
   ##############################
   #####      Global        #####
@@ -518,54 +479,7 @@ server <- function(input, output, session) {
     potContGeo <- st_as_sf(spTransform(potCont, CRSobj = CRS("+init=epsg:4326")))
     return(potContGeo)
   }
-  
-  
-  # Select spatial unit and join time values ----
-  
-  GetTime <- function(tabcoords, tabtime, ref, oneunit){
-    oriDes <- c("ORI", "DES")
-    invRef <- oriDes[oriDes != ref]
-    oneTime <- tabtime[tabtime[[ref]] == oneunit, ]
-    oneTimeCoords <- tabcoords %>% left_join(oneTime, by = c("CODGEO" = invRef)) %>% filter(!is.na(VAL))
-    return(oneTimeCoords)
-  }
-  
-  
-  # Draw visible zone with time threshold ----
-  
-  DrawVisibleZone <- function(ras, onetime, thres){
-    timeInterpol <- gstat(id = "VAL", formula = VAL ~ 1, locations = ~ X1 + X2, data = onetime, nmax = 10)
-    rasTime <- interpolate(ras, timeInterpol, xyOnly = TRUE, xyNames = c("X1", "X2"))
-    rasTime <- mask(rasTime, ras)
-    valRas <- c(as.matrix(rasTime))
-    valRasMax <- max(valRas, na.rm = TRUE)
-    contThres <- rasterToContourPoly(r = rasTime, breaks = c(0, thres, ceiling(valRasMax)))
-    contThres <- st_as_sf(spTransform(contThres, CRSobj = CRS("+init=epsg:4326")))
-    return(contThres)
-  }
-  
-  
-  # create POMA plot ----
-  
-  PomaPlot <- function(tabsum, mod){
-    varx <- paste0("AVG", mod)
-    vary <- paste0("PMI", mod)
-    varclass <- paste0("CLASS", mod)
-    tabsum <- tabsum[tabsum[[varclass]] %in% c("0_0", "0_1", "1_0", "1_1"), ]
-    medx <- median(tabsum[[varx]], na.rm = T)
-    medy <- median(tabsum[[vary]], na.rm = T)
-    pomaPlot <- ggplot(tabsum) + 
-      geom_point(aes_string(x = varx, y = vary, color = varclass), size = 1) + 
-      geom_vline(xintercept = medx, color = "grey80") +
-      geom_hline(yintercept = medy, color = "grey80") +
-      # scale_color_manual(values = c("chartreuse4", "tan3", "goldenrod", "firebrick")) +
-      scale_color_manual(values = c("tan3", "chartreuse4", "firebrick", "goldenrod")) +
-      xlab(label = paste0("Temps moyen d'accès vers tout (", mod, ", mn)")) + 
-      ylab(label = paste0("Vitesse moyenne d'accès vers tout (", mod, ", km/h)")) + 
-      theme_darkhc
-    return(pomaPlot)
-  }
-  
+
   
   # get top links ----
   

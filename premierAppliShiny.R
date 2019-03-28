@@ -11,15 +11,26 @@ library(shiny)
 library(sf)
 library(classInt)
 library(leaflet)
+library(flows)
+library(proj4)
 
 
 
 #Chargement des données
 tabflows <- readRDS("C:/Users/Bureau des MCFs/Desktop/Postcar/Dev/aperitif-master/data/tabflows.Rds")
+comm <- read_sf(dsn = "C:/Users/Bureau des MCFs/Desktop/Postcar/Dev/Tuto/PremiereAppliShiny/data/les-communes-generalisees-dile-de-france.shp")
+
+
 pomaTable <- readRDS("C:/Users/Bureau des MCFs/Desktop/Postcar/Dev/aperitif-master/data/pomatable.Rds")
 coordcom <- readRDS("C:/Users/Bureau des MCFs/Desktop/Postcar/Dev/aperitif-master/data/coordcom.Rds")
 listtimes <- readRDS("C:/Users/Bureau des MCFs/Desktop/Postcar/Dev/aperitif-master/data/listtimes.Rds")
-comm <- readOGR(dsn = "C:/Users/Bureau des MCFs/Desktop/Postcar/Dev/Tuto/PremiereAppliShiny/data/les-communes-generalisees-dile-de-france.shp", stringsAsFactors=FALSE)
+pomaCom <- readRDS(file = "C:/Users/Bureau des MCFs/Desktop/Postcar/Dev/Tuto/PremiereAppliShiny/data/pomacom.Rds")
+listTimes <- readRDS(file = "C:/Users/Bureau des MCFs/Desktop/Postcar/Dev/Tuto/PremiereAppliShiny/data/listtimes.Rds")
+listPotentials <- readRDS(file = "C:/Users/Bureau des MCFs/Desktop/Postcar/Dev/Tuto/PremiereAppliShiny/data/listpotentials.Rds")
+pomaTable <- readRDS(file = "C:/Users/Bureau des MCFs/Desktop/Postcar/Dev/Tuto/PremiereAppliShiny/data/pomatable.Rds")
+tabFlows <- readRDS(file = "C:/Users/Bureau des MCFs/Desktop/Postcar/Dev/Tuto/PremiereAppliShiny/data/tabflows.Rds")
+listCondor <- readRDS(file = "C:/Users/Bureau des MCFs/Desktop/Postcar/Dev/Tuto/PremiereAppliShiny/data/condorcet.Rds")
+
 
 #extraction des df de temps
 timesTC <- listtimes[[1]]
@@ -178,6 +189,64 @@ tabflow6$TvpmMTtcDes <- tabflow6$TVPMDes - tabflow6$TTCDes
 
 #Différence de temps de trajet voiture soir et transport en commun pour les communes de destination
 tabflow6$TvpsMTtcDes <- tabflow6$TVPSDes - tabflow6$TTCDes
+
+
+
+saveRDS(tabflow6, file = "C:/Users/Bureau des MCFs/Desktop/Postcar/Dev/Tuto/PremiereAppliShiny/data/data_PCR.rds")
+
+########################################################
+######     Créations des des flux dominants      #######
+########################################################
+
+myflows <- prepflows(mat = nav, i = "i", j = "j", fij = "fij")
+diag(myflows) <- 0
+flowSel1 <- domflows(mat = myflows, w = colSums(myflows), k = 1)
+flowSel2 <- firstflows(mat = myflows, method = "nfirst", ties.method = "first", k = 1)
+
+myflowDom <- myflows * flowSel1 * flowSel2
+myflowDomLong <- melt(data = myflowDom, varnames = c("ORI", "DES"), value.name = "FLOW", as.is = TRUE) %>%
+  filter(FLOW > 0)
+myflowDomLong$KEY <- paste(myflowDomLong$ORI, myflowDomLong$DES, sep = "_")
+myspLinks <- getLinkLayer(x = UA, df = myflowDomLong[, c("ORI", "DES")])
+class(myspLinks)
+myspLinks$KEY <- paste(myspLinks$ORI, myspLinks$DES, sep = "_")
+myspLinks <- left_join(myspLinks, myflowDomLong[, c("KEY", "FLOW")], by = "KEY")
+
+# firstFlow <- tabFlows %>%
+#   filter(ORI != DES) %>%
+#   group_by(ORI) %>%
+#   top_n(n = 1, wt = FLOW)
+
+UAsf <- st_as_sf(UA)
+
+leaflet() %>%
+  addTiles() %>%
+  addPolygons(data = st_transform(UAsf, crs = 4326), stroke = TRUE, weight = 1, color = "grey35", fill = TRUE,
+              fillColor = "ghostwhite", fillOpacity = 0.3) %>%
+  addPolylines(data = st_transform(myspLinks, crs = 4326), color = "firebrick", opacity = 0.8, weight = 1.5,
+               stroke = TRUE)
+
+tabflows <- readRDS("C:/Users/Bureau des MCFs/Desktop/Postcar/Dev/aperitif-master/data/tabflows.Rds")
+
+# tabflows$KEY <- paste(tabflows$ORI, tabflows$DES, sep="_")
+
+
+
+
+tabflows <- tabflows %>% group_by(ORI, DES) %>% 
+  summarise(FLOW = sum(FLOW)) %>% filter_( "ORI != DES") 
+
+tabflows$key <- paste(tabflows$ORI,tabflows$DES, sep="_")
+
+tabflows <- tabflows %>% group_by(ORI, DES) %>% top_n( n = 1, wt = FLOW)
+  
+
+
+
+
+
+
+
 
 ui<- fluidPage(
   #element d'affichage de la page
