@@ -89,27 +89,20 @@ spLinksEmploiPop <- left_join(spLinksEmploiPop, flowDomLongEmploiPop[, c("KEY", 
 
 
 
-
 ###### Poid des lignes
-spLinksEmploi$weight<-  ifelse(spLinksEmploi$FLOW<1230.14,0.2,
-                               ifelse(spLinksEmploi$FLOW>=1230.14 & spLinksEmploi$FLOW<3870.81,1,
-                                      ifelse(spLinksEmploi$FLOW>=3870.81 & spLinksEmploi$FLOW<7350.95,3,
-                                             ifelse(spLinksEmploi$FLOW>=7350.95 & spLinksEmploi$FLOW<12653.160,4.5,7
-                                             ))))
+spLinksEmploi$weight<-  ifelse(spLinksEmploi$FLOW<1741.04,0.2,
+                               ifelse(spLinksEmploi$FLOW>=1741.04 & spLinksEmploi$FLOW<6632.37,1,3
+                                      ))
 
 # spLinksEmploi$weight <- spLinksEmploi$FLOW * 8/(max(spLinksEmploi$FLOW) - min(spLinksEmploi$FLOW))
 
-spLinksPop$weight<-  ifelse(spLinksPop$FLOW<1230.14,0.2,
-                               ifelse(spLinksPop$FLOW>=1230.14 & spLinksPop$FLOW<3870.81,1,
-                                      ifelse(spLinksPop$FLOW>=3870.81 & spLinksPop$FLOW<7350.95,3,
-                                             ifelse(spLinksPop$FLOW>=7350.95 & spLinksPop$FLOW<12653.160,4.5,7
-                                             ))))
+spLinksPop$weight<-  ifelse(spLinksPop$FLOW<1741.04,0.2,
+                               ifelse(spLinksPop$FLOW>=1741.04 & spLinksPop$FLOW<6632.37,1,3
+                               ))
 
-spLinksEmploiPop$weight<-  ifelse(spLinksEmploiPop$FLOW<1230.14,0.2,
-                               ifelse(spLinksEmploiPop$FLOW>=1230.14 & spLinksEmploiPop$FLOW<3870.81,1,
-                                      ifelse(spLinksEmploiPop$FLOW>=3870.81 & spLinksEmploiPop$FLOW<7350.95,3,
-                                             ifelse(spLinksEmploiPop$FLOW>=7350.95 & spLinksEmploiPop$FLOW<12653.160,4.5,7
-                                             ))))
+spLinksEmploiPop$weight<-  ifelse(spLinksEmploiPop$FLOW<1741.04,0.2,
+                               ifelse(spLinksEmploiPop$FLOW>=1741.04 & spLinksEmploiPop$FLOW<6632.37,1,3
+                               ))
 
 
 #Convertir commflu en objet SF et extraire les centroides au format X, Y
@@ -157,9 +150,9 @@ sfdc <- (x2 - x1) * (y2 - y1)
 # rayonPopulation <- sqrt(((totOri$POPULATION*0.04)/sum(totOri$POPULATION))/pi)
 # rayonEmploiPop <- sqrt(((totOriDes$EMPLOIPOP*0.04)/sum(totOriDes$EMPLOIPOP))/pi)
 
-rayonEmploi <- sqrt(totDes$EMPLOI)*10
-rayonPopulation <- sqrt(totOri$POPULATION)*10
-rayonEmploiPop <- sqrt(totOriDes$POPetEMPLOI)*10
+rayonEmploi <- sqrt(totDes$EMPLOI)*7
+rayonPopulation <- sqrt(totOri$POPULATION)*7
+rayonEmploiPop <- sqrt(totOriDes$POPetEMPLOI)*7
 
 
 ##Création de donées pour la taille des traits et la couleur des cercles

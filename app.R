@@ -3,7 +3,7 @@ library(sp)               # objets spatiaux
 library(rgdal)            # fonctions de la bibliothèque GDAL
 library(ggplot2)          # fonctions graphiques
 library(ggthemes)  
-library(gstat)             # thèmes pour ggplot
+library(gstat)            # thèmes pour ggplot
 library(grid)             # fonction arrow
 library(cartography)      # cartographie thématique
 library(RColorBrewer)     # palettes de couleurs de C. Brewer
@@ -239,20 +239,18 @@ server <- function(input, output, session) {
   ##############################
   
   output$mapIndic <- renderLeaflet({
-    leaflet(commData, options = leafletOptions(minZoom = 9, zoomControl = FALSE)) %>%  
-      addProviderTiles(
-        providers$"CartoDB.DarkMatter") %>% 
+    leaflet() %>%
+      addProviderTiles(provider = "CartoDB.DarkMatter") %>%
+      fitBounds(lng1 = 1.44, lat1 = 48.12, lng2 = 3.55, lat2 = 49.24)
+  })
+  
+  observe({
+    leafletProxy("mapIndic", data =commData) %>%
+      clearShapes() %>%
       addPolygons(
-        fillColor = ~colorBin(palette = "Purples", 
-                              bins = getBreaks(v$data, 
-                                               nclass = 6, 
-                                               method = "fisher-jenks"),
-                              domain = v$data
-        )(v$data),
-        weight = 1,
-        opacity = 0.3,
-        color = "white",
-        fillOpacity = 0.5,
+        fillColor = ~colorBin(palette = "Purples",bins = getBreaks(v$data, 
+        nclass = 6,method = "fisher-jenks"),domain = v$data)(v$data),
+        weight = 1, opacity = 0.3,color = "white",fillOpacity = 0.5,
         highlight = highlightOptions(
           weight = 3,
           color = "white",
@@ -268,24 +266,25 @@ server <- function(input, output, session) {
           style = list("font-weight" = "normal", 
                        padding = "3px 8px"),
           textsize = "15px",
-          direction = "auto")) %>%
-      addLegend(
-        pal = colorBin(palette = "Purples", 
-                       bins = getBreaks(v$data, 
-                                        nclass = 6, 
-                                        method = "fisher-jenks"),
-                       domain = v$data, 
-                       pretty = TRUE), 
-        values = ~v$data, 
-        opacity = 0.5, 
-        title = NULL,
-        position = "bottomright") %>%
+          direction = "auto")) %>% 
       setMaxBounds(lng1 = 1.44,
                    lat1 = 48.12,
                    lng2 = 3.55,
                    lat2 = 49.23)
   })
   
+  observe({
+    proxy <- leafletProxy("mapIndic", data =commData)
+    
+    # Remove any existing legend, and only if the legend is
+    # enabled, create a new one.
+    proxy %>% clearControls()
+      proxy %>%  addLegend(pal = colorBin(palette = "Purples",
+                bins = getBreaks(v$data,nclass = 6,method = "fisher-jenks"),
+                domain = v$data,pretty = TRUE),values = ~v$data, opacity = 0.5,
+        title = NULL, position = "bottomright")
+  })
+ 
   ##############################
   #####      Map Flux      #####
   ##############################
@@ -305,7 +304,7 @@ server <- function(input, output, session) {
   })
   
   ##############################
-  #####    Map Bassin      #####
+  #####     Map Bassin     #####
   ##############################
   
   output$mappot <- renderLeaflet({
@@ -350,7 +349,7 @@ server <- function(input, output, session) {
   ##############################
   #####    Map FluDom      #####
   ##############################
-
+  
   output$mapfluDom <- renderLeaflet({
     leaflet() %>%
       addMapPane("background_map", zIndex = 410) %>%    # Level 1
@@ -367,10 +366,19 @@ server <- function(input, output, session) {
         overlayGroups = c("Communes", "Réseau routier principal", "Réseau ferré"),
         options = layersControlOptions(collapsed = FALSE)
       ) %>% 
+      fitBounds(lng1 = 1.44, lat1 = 48.12, lng2 = 3.55, lat2 = 49.24)%>% 
+      hideGroup("Réseau routier principal") %>% 
+      hideGroup("Réseau ferré") %>% 
+      hideGroup("Communes")
+  })
+  
+  observe({
+    leafletProxy(mapId = "mapfluDom") %>%
+      clearShapes() %>%
       
       addPolygons(data = st_transform(commsf, crs = 4326), stroke = TRUE, weight = 0.5, opacity = 0.5, color = "grey", fill = TRUE,
-                              fillColor = "ghostwhite", fillOpacity = 0, group = "Communes",
-                    options = pathOptions(pane = "communes")) %>% 
+                  fillColor = "ghostwhite", fillOpacity = 0, group = "Communes",
+                  options = pathOptions(pane = "communes")) %>% 
       addPolylines(data = st_transform(routier, crs = 4326), color = "grey", opacity = 0.6, weight = 1.3 ,
                    stroke = TRUE, group = "Réseau routier principal",
                    options = pathOptions(pane = "réseau_routier")) %>% 
@@ -380,29 +388,36 @@ server <- function(input, output, session) {
       addPolylines(data = st_transform(f$dataflu, crs = 4326), color = "white", opacity = 0.6, weight = f$dataflu$weight ,
                    stroke = TRUE,
                    options = pathOptions(pane = "flux")) %>% 
-    addCircles(lng = totDes$lon, lat = totDes$lat, radius = r$rayon, color = c$col, stroke = F,
-               highlight = highlightOptions(
-                 weight = 3,
-                 color = "white",
-                 opacity = 1,
-                 fillOpacity = 0.7,
-                 bringToFront = F),
-               label = sprintf(
-                 "<strong>%s</strong><br/> Valeur : %.0f", 
-                 totDes$nomcom,
-                 vc$valCercle
-               )%>% lapply(htmltools::HTML),
-               labelOptions = labelOptions(
-                 style = list("font-weight" = "normal", 
-                              padding = "3px 8px"),
-                 textsize = "15px",
-                 direction = "auto"),
-               options = pathOptions(pane = "cercles")
-               ) %>% 
-      hideGroup("Réseau routier principal") %>% 
-      hideGroup("Réseau ferré") %>% 
-      hideGroup("Communes")
+      addCircles(lng = totDes$lon, lat = totDes$lat, radius = r$rayon, color = c$col, stroke = F,
+                 highlight = highlightOptions(
+                   weight = 3,
+                   color = "white",
+                   opacity = 1,
+                   fillOpacity = 0.7,
+                   bringToFront = F),
+                 label = sprintf(
+                   "<strong>%s</strong><br/> Valeur : %.0f", 
+                   totDes$nomcom,
+                   vc$valCercle
+                 )%>% lapply(htmltools::HTML),
+                 labelOptions = labelOptions(
+                   style = list("font-weight" = "normal", 
+                                padding = "3px 8px"),
+                   textsize = "15px",
+                   direction = "auto"),
+                 options = pathOptions(pane = "cercles")
+      ) 
   })
+  
+  # observe({
+  #   proxy <- leafletProxy(mapId = , data = )
+  #   
+  #   # Remove any existing legend, and only if the legend is
+  #   # enabled, create a new one.
+  #   proxy %>% clearControls()
+  #   proxy %>%  addLegend()
+  # })
+
   
   
   ##############################
