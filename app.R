@@ -22,27 +22,27 @@ library(SpatialPosition)
 library(shinyBS)
 library(shinyWidgets)
 
-data_PCR <- readRDS("C:/Users/Bureau des MCFs/Desktop/Postcar/Dev/Tuto/PremiereAppliShiny/data/data_PCR.Rds")
-pomaTable <- readRDS("C:/Users/Bureau des MCFs/Desktop/Postcar/Dev/Tuto/PremiereAppliShiny/data/pomatable.Rds")
-coordcom <- readRDS("C:/Users/Bureau des MCFs/Desktop/Postcar/Dev/Tuto/PremiereAppliShiny/data/coordcom.Rds")
-listtimes <- readRDS("C:/Users/Bureau des MCFs/Desktop/Postcar/Dev/Tuto/PremiereAppliShiny/data/listtimes.Rds")
-pomaCom <- readRDS(file = "C:/Users/Bureau des MCFs/Desktop/Postcar/Dev/Tuto/PremiereAppliShiny/data/pomacom.Rds")
-listTimes <- readRDS(file = "C:/Users/Bureau des MCFs/Desktop/Postcar/Dev/Tuto/PremiereAppliShiny/data/listtimes.Rds")
-listPotentials <- readRDS(file = "C:/Users/Bureau des MCFs/Desktop/Postcar/Dev/Tuto/PremiereAppliShiny/data/listpotentials.Rds")
-pomaTable <- readRDS(file = "C:/Users/Bureau des MCFs/Desktop/Postcar/Dev/Tuto/PremiereAppliShiny/data/pomatable.Rds")
-tabFlows <- readRDS(file = "C:/Users/Bureau des MCFs/Desktop/Postcar/Dev/Tuto/PremiereAppliShiny/data/tabflows.Rds")
-listCondor <- readRDS(file = "C:/Users/Bureau des MCFs/Desktop/Postcar/Dev/Tuto/PremiereAppliShiny/data/condorcet.Rds")
+data_PCR <- readRDS("data/data_PCR.Rds")
+pomaTable <- readRDS("data/pomatable.Rds")
+coordCom <- readRDS("data/coordcom.Rds")
+pomaCom <- readRDS(file = "data/pomacom.Rds")
+listPotentials <- readRDS(file = "data/listpotentials.Rds")
+pomaTable <- readRDS(file = "data/pomatable.Rds")
+tabFlows <- readRDS(file = "data/tabflows.Rds")
 
 
-comm <- read_sf(dsn = "C:/Users/Bureau des MCFs/Desktop/Postcar/Dev/Tuto/PremiereAppliShiny/data/les-communes-generalisees-dile-de-france.shp")
-vferre <- read_sf(dsn = "C:/Users/Bureau des MCFs/Desktop/Postcar/Dev/Tuto/PremiereAppliShiny/data/traces-du-reseau-ferre-idf.shp")
-routier <- read_sf(dsn = "C:/Users/Bureau des MCFs/Desktop/Postcar/Dev/Tuto/PremiereAppliShiny/data/Réseau_routier_magistral_existant_de_la_Région_ÎledeFrance_inscrit_sur_la_CDGT_du_Sdrif_approuvé_par_décret_le_27_décembre_2013.shp")
+comm <- read_sf(dsn = "data/les-communes-generalisees-dile-de-france.shp")
+commsf <- read_sf(dsn = "data/les-communes-generalisees-dile-de-france.shp")
+vferre <- read_sf(dsn = "data/traces-du-reseau-ferre-idf.shp")
+routier <- read_sf(dsn = "data/Réseau_routier_magistral_existant_de_la_Région_ÎledeFrance_inscrit_sur_la_CDGT_du_Sdrif_approuvé_par_décret_le_27_décembre_2013.shp")
 
 commData <- merge(comm,data_PCR, by.x="insee", by.y = "ORI")
 
 
 
 ui<- bootstrapPage(
+  
+  
   # element d'affichage de la page
   theme = shinytheme("superhero"),
   useShinyjs(),

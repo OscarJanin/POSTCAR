@@ -1,7 +1,7 @@
 library(rgeos)
 
 # Import data
-tabflowdom <- readRDS("C:/Users/Bureau des MCFs/Desktop/Postcar/Dev/aperitif-master/data/tabflows.Rds")
+tabflowdom <- readRDS("data/tabflows.Rds")
 
 
 dicoAgrParis <- tibble(OLDCODE = c("75101", "75102", "75103","75104", "75105", 
@@ -37,7 +37,7 @@ flowDomEmploiPop <- matflowdom * firstflows * domflowsEmploiPop
 # Node weights
 inflows <- data.frame(id = colnames(matflowdom), w = colSums(matflowdom))
 
-commflu <- readOGR(dsn = "C:/Users/Bureau des MCFs/Desktop/Postcar/Dev/Tuto/PremiereAppliShiny/data/les-communes-generalisees-dile-de-france-parisagr.shp")
+commflu <- readOGR(dsn = "data/les-communes-generalisees-dile-de-france-parisagr.shp")
 
 
 ##################

@@ -17,18 +17,14 @@ library(proj4)
 
 
 #Chargement des données
-tabflows <- readRDS("C:/Users/Bureau des MCFs/Desktop/Postcar/Dev/aperitif-master/data/tabflows.Rds")
-comm <- read_sf(dsn = "C:/Users/Bureau des MCFs/Desktop/Postcar/Dev/Tuto/PremiereAppliShiny/data/les-communes-generalisees-dile-de-france.shp")
+tabflows <- readRDS("data/tabflows.Rds")
+comm <- read_sf(dsn = "data/les-communes-generalisees-dile-de-france.shp")
 
 
-pomaTable <- readRDS("C:/Users/Bureau des MCFs/Desktop/Postcar/Dev/aperitif-master/data/pomatable.Rds")
-coordcom <- readRDS("C:/Users/Bureau des MCFs/Desktop/Postcar/Dev/aperitif-master/data/coordcom.Rds")
-listtimes <- readRDS("C:/Users/Bureau des MCFs/Desktop/Postcar/Dev/aperitif-master/data/listtimes.Rds")
-pomaCom <- readRDS(file = "C:/Users/Bureau des MCFs/Desktop/Postcar/Dev/Tuto/PremiereAppliShiny/data/pomacom.Rds")
-listPotentials <- readRDS(file = "C:/Users/Bureau des MCFs/Desktop/Postcar/Dev/Tuto/PremiereAppliShiny/data/listpotentials.Rds")
-pomaTable <- readRDS(file = "C:/Users/Bureau des MCFs/Desktop/Postcar/Dev/Tuto/PremiereAppliShiny/data/pomatable.Rds")
-tabFlows <- readRDS(file = "C:/Users/Bureau des MCFs/Desktop/Postcar/Dev/Tuto/PremiereAppliShiny/data/tabflows.Rds")
-listCondor <- readRDS(file = "C:/Users/Bureau des MCFs/Desktop/Postcar/Dev/Tuto/PremiereAppliShiny/data/condorcet.Rds")
+pomaTable <- readRDS("data/pomatable.Rds")
+listPotentials <- readRDS(file = "data/listpotentials.Rds")
+pomaTable <- readRDS(file = "data/pomatable.Rds")
+tabFlows <- readRDS(file = "data/tabflows.Rds")
 
 
 
@@ -107,4 +103,4 @@ tabflow3$Gravitation <- (tabflow3$DesTotal-tabflow3$OriTotal) / (tabflow3$OriTot
 
 
 
-saveRDS(tabflow6, file = "C:/Users/Bureau des MCFs/Desktop/Postcar/Dev/Tuto/PremiereAppliShiny/data/data_PCR.rds")
+saveRDS(tabflow3, file = "data/data_PCR.rds")
