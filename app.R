@@ -21,22 +21,39 @@ library(raster)
 library(SpatialPosition)
 library(shinyBS)
 library(shinyWidgets)
+library(flows)
+library(plotly)
 
-data_PCR <- readRDS("data/data_PCR.Rds")
-pomaTable <- readRDS("data/pomatable.Rds")
-coordCom <- readRDS("data/coordcom.Rds")
-pomaCom <- readRDS(file = "data/pomacom.Rds")
-listPotentials <- readRDS(file = "data/listpotentials.Rds")
-pomaTable <- readRDS(file = "data/pomatable.Rds")
+
+
 tabFlows <- readRDS(file = "data/tabflows.Rds")
-
 
 comm <- read_sf(dsn = "data/les-communes-generalisees-dile-de-france.shp")
 commsf <- read_sf(dsn = "data/les-communes-generalisees-dile-de-france.shp")
 vferre <- read_sf(dsn = "data/traces-du-reseau-ferre-idf.shp")
 routier <- read_sf(dsn = "data/Réseau_routier_magistral_existant_de_la_Région_ÎledeFrance_inscrit_sur_la_CDGT_du_Sdrif_approuvé_par_décret_le_27_décembre_2013.shp")
 
-commData <- merge(comm,data_PCR, by.x="insee", by.y = "ORI")
+shape <- readOGR(dsn = "data/les-communes-generalisees-dile-de-france-parisagr2.shp")
+
+id <- "insee"
+
+dicoAgrParis <- tibble(OLDCODE = c("75101", "75102", "75103","75104", "75105",
+                                   "75106","75107", "75108", "75109","75110",
+                                   "75111", "75112", "75113", "75114","75115",
+                                   "75116", "75117","75118", "75119", "75120"), NEWCODE = "75056")
+
+tabflowdom$ORIAGR <- plyr::mapvalues(x = tabflowdom$ORI, from = dicoAgrParis$OLDCODE, to = dicoAgrParis$NEWCODE)
+tabflowdom$DESAGR <- plyr::mapvalues(x = tabflowdom$DES, from = dicoAgrParis$OLDCODE, to = dicoAgrParis$NEWCODE)
+
+mat <- prepflows(mat = tabflowdom, i = "ORIAGR", j = "DESAGR", fij = "FLOW")
+
+saveRDS(mat, file = "data/mat")
+
+commData <- mobIndic(matrix = matFlows, id = "insee", shapesf = comm)
+
+domFlowJob <- domFlow(mat = mat, shape = shape ,id = id, weight = "job")
+domFlowPop <- domFlow(mat = mat, shape = shape ,id = id, weight = "population")
+domFlowJP <- domFlow(mat = mat, shape = shape ,id = id, weight = "job&pop")
 
 
 
@@ -67,6 +84,15 @@ ui<- bootstrapPage(
                   }
                   #mapfluDom {
                   position: absolute;
+                  }
+                  #graphPanel{
+                  display: none
+                  }
+                  .panel-title {
+                  text-align: center
+                  }
+                  #graphPanelButton {
+                  text-align: center
                   }
                   ")),
   
@@ -199,8 +225,8 @@ ui<- bootstrapPage(
                                                    choices = list("Gravitation" = "Gravitation",
                                                                   "Auto-Contention" = "Contention",
                                                                   "Auto-Suffisance" = "Suffisance",
-                                                                  "Dépendance" = "Dependance",
-                                                                  "Mobilité" = "Mobilite"))
+                                                                  "Dépendance" = "Dependance"
+                                                                  ))
                              ),
                              
                              ##############################
@@ -267,56 +293,92 @@ ui<- bootstrapPage(
                                       )
                  )
   )
+  ,
+
+  absolutePanel( id = "graphPanelButton",
+                 class = "panel panel-default",
+                 style = "padding : 10px",
+                 top = "15%",
+                 left = "78%",
+                 right = "2%",
+                 actionButton("button", "Graphiques")          
+  ),
+  absolutePanel( id = "graphPanel",
+                 class = "panel panel-default",
+                 style = "padding : 10px",
+                 top = "25%",
+                 left = "68%",
+                 right = "2%",
+                 draggable = T,
+                 width = "30%",
+                 fixed = T,
+                 plotlyOutput("plot1")
+  )
   )
 
 server <- function(input, output, session) {
   
-  v <- reactiveValues(data = commData$Gravitation)
+  # output$plot1 <- ggplot(data = tabflow, aes(x = tabflow$RelBal, y = tabflow$AutoSuff)) + geom_col()
+  
+  output$plot1 <- renderPlotly({
+    plot_ly(tabflow, x = ~RelBal, y = ~AutoSuff)
+  })
+  
+  observeEvent(input$button, {
+    toggle("graphPanel")
+  })
+  
+  v <- reactiveValues(data = commData$RelBal)
   n <- reactiveValues(nom = "Gravitation")
   
   observeEvent(input$radioMobi,{
     if(input$radioMobi=="Gravitation"){
-      v$data <- commData$Gravitation
+      v$data <- commData$RelBal
       n$nom <- "Gravitation : "}
     if(input$radioMobi=="Contention"){
-      v$data <- commData$AutoContention
+      v$data <- commData$Mobility
       n$nom <- "Auto-Contention : "}
     if(input$radioMobi=="Suffisance"){
-      v$data <- commData$AutoSuffisance
+      v$data <- commData$AutoSuff
       n$nom <- "Auto-Suffisance : "}
     if(input$radioMobi=="Dependance"){
-      v$data <- commData$Dependance
+      v$data <- commData$Dependency
       n$nom <- "Dépendance : "}
-    if(input$radioMobi=="Mobilite"){
-      v$data <- commData$Mobilite
-      n$nom <- "Mobilité : "}
   })
   
-  f <- reactiveValues(dataflu = spLinksEmploi)
-  r <- reactiveValues(rayon = rayonEmploi)
-  c <- reactiveValues(col = totDes$col)
-  vc <- reactiveValues(valCercle = totDes$EMPLOI)
-  nf <- reactiveValues(nom = "Nombre d'emploi")
+
+  
+  f <- reactiveValues(dataflu = domFlowJob[[2]])
+  r <- reactiveValues(rayon = (sqrt(domFlowJob[[1]][["JOB"]])/pi)*20)
+  c <- reactiveValues(cercle = domFlowJob[[1]])
+  vc <- reactiveValues(valCercle = domFlowJob[[1]][["JOB"]])
+  nf <- reactiveValues(nom = "Emploi : ")
+  nc <- reactiveValues(comm = domFlowJob[[1]][["nomcom"]])
+
   
   observeEvent(input$radioFlu,{
     if(input$radioFlu=="iEmploi"){
-      f$dataflu <- spLinksEmploi
-      r$rayon <- rayonEmploi
-      c$col <- totDes$col
-      vc$valCercle <- totDes$EMPLOI
-      nf$nom <- "Emploi : "}
+      
+      f$dataflu <- domFlowJob[[2]]
+      r$rayon <- (sqrt(domFlowJob[[1]][["JOB"]])/pi)*20
+      c$cercle <- domFlowJob[[1]]
+      vc$valCercle <- domFlowJob[[1]][["JOB"]]
+      nf$nom <- "Emploi : "
+      nc$comm <- domFlowJob[[1]][["nomcom"]]}
     if(input$radioFlu=="iPopulation"){
-      f$dataflu <- spLinksPop
-      r$rayon <- rayonPopulation
-      c$col <- totOri$col
-      vc$valCercle <- totOri$POPULATION
-      nf$nom <- "Population : "}
+      f$dataflu <- domFlowPop[[2]]
+      r$rayon <- (sqrt(domFlowPop[[1]][["POPULATION"]])/pi)*20
+      c$cercle <- domFlowPop[[1]]
+      vc$valCercle <- domFlowPop[[1]][["POPULATION"]]
+      nf$nom <- "Population : "
+      nc$comm <- domFlowPop[[1]][["nomcom"]]}
     if(input$radioFlu=="iEmpPop"){
-      f$dataflu <- spLinksEmploiPop
-      r$rayon <- rayonEmploiPop
-      c$col <- totOriDes$col
-      vc$valCercle <- totOriDes$POPetEMPLOI
-      nf$nom <- "Emploi et Population : "}
+      f$dataflu <- domFlowJP[[2]]
+      r$rayon <- (sqrt(domFlowJP[[1]][["POPJOB"]])/pi)*20
+      c$cercle <- domFlowJP[[1]]
+      vc$valCercle <- domFlowJP[[1]][["POPJOB"]]
+      nf$nom <- "Emploi et Population : "
+      nc$comm <- domFlowJP[[1]][["nomcom"]]}
   })
   
   ##############################
@@ -324,13 +386,13 @@ server <- function(input, output, session) {
   ##############################
   
   output$mapIndic <- renderLeaflet({
-    leaflet() %>%
-      
-      addMapPane("background_map", zIndex = 410) %>%    # Level 1
-      addMapPane("réseau_routier", zIndex = 420) %>%          # Level 2
-      addMapPane("voie_ferré", zIndex = 430) %>%    # Level 3
+    leaflet(options = leafletOptions(zoomControl = FALSE)) %>%
+      addMapPane("background_map", zIndex = 410) %>%  # Level 1
+      addMapPane("réseau_routier", zIndex = 420) %>%  # Level 2
+      addMapPane("voie_ferré", zIndex = 430) %>%      # Level 3
       addProviderTiles(provider = "Esri.WorldGrayCanvas") %>%
       addLayersControl(
+        position = "bottomleft",
         overlayGroups = c("Réseau routier principal", "Réseau ferré"),
         options = layersControlOptions(collapsed = FALSE)
       ) %>% 
@@ -340,6 +402,7 @@ server <- function(input, output, session) {
   })
   
   observe({
+    
     shinyjs::showElement(id = 'loading')
     
     leafletProxy("mapIndic", data =commData) %>%
@@ -386,6 +449,7 @@ server <- function(input, output, session) {
                 bins = getBreaks(v$data,nclass = 6,method = "fisher-jenks"),
                 domain = v$data,pretty = TRUE),values = ~v$data, opacity = 0.7,
         title = NULL, position = "bottomright")
+      
   })
  
   ##############################
@@ -393,7 +457,7 @@ server <- function(input, output, session) {
   ##############################
   
   output$mapflu <- renderLeaflet({
-    leaflet() %>%
+    leaflet(options = leafletOptions(zoomControl = FALSE)) %>%
       addMapPane("background_map", zIndex = 410) %>%    # Level 1
       addMapPane("communes", zIndex = 420) %>%          # Level 2
       addMapPane("réseau_routier", zIndex = 430) %>%    # Level 3
@@ -402,6 +466,7 @@ server <- function(input, output, session) {
       addMapPane("lignes", zIndex = 460) %>%            # Level 6
       addProviderTiles(provider = "Esri.WorldGrayCanvas") %>%
       addLayersControl(
+        position = "bottomleft",
         overlayGroups = c("Communes", "Réseau routier principal", "Réseau ferré"),
         options = layersControlOptions(collapsed = FALSE)
       ) %>% 
@@ -413,6 +478,7 @@ server <- function(input, output, session) {
   
   observe({
     shinyjs::showElement(id = 'loading')
+    
     topDes <- GetTopLinks()
     leafletProxy("mapflu") %>%
       clearShapes() %>%
@@ -428,6 +494,7 @@ server <- function(input, output, session) {
       addPolygons(data = topDes$POLYG, label = topDes$POLYG$LIBGEO, stroke = TRUE, weight = 1, color = "grey35", 
                   fill = TRUE, fillColor = "ghostwhite", fillOpacity = 0.3,options = pathOptions(pane = "comm")) %>%
       addPolylines(data = topDes$LINES, color = "Purple", opacity = 0.8, weight = 1.5, stroke = TRUE, options = pathOptions(pane = "lignes"))
+    
     shinyjs::hideElement(id = 'loading')
   })
   
@@ -436,13 +503,14 @@ server <- function(input, output, session) {
   ##############################
   
   output$mappot <- renderLeaflet({
-    leaflet() %>%
+    leaflet(options = leafletOptions(zoomControl = FALSE)) %>%
       addMapPane("background_map", zIndex = 410) %>%    # Level 1
       addMapPane("communes", zIndex = 420) %>%          # Level 2
       addMapPane("réseau_routier", zIndex = 430) %>%    # Level 3
       addMapPane("voie_ferré", zIndex = 440) %>%    # Level 3
       addProviderTiles(provider = "Esri.WorldGrayCanvas") %>%
       addLayersControl(
+        position = "bottomleft",
         overlayGroups = c("Communes", "Réseau routier principal", "Réseau ferré"),
         options = layersControlOptions(collapsed = FALSE)
       ) %>% 
@@ -524,18 +592,19 @@ server <- function(input, output, session) {
   ##############################
   
   output$mapfluDom <- renderLeaflet({
-    leaflet() %>%
+    leaflet(options = leafletOptions(zoomControl = FALSE)) %>%
       addMapPane("background_map", zIndex = 410) %>%    # Level 1
       addMapPane("communes", zIndex = 420) %>%          # Level 2
       addMapPane("réseau_routier", zIndex = 430) %>%    # Level 3
       addMapPane("voie_ferré", zIndex = 440) %>%        # Level 4
-      addMapPane("cercles", zIndex = 450) %>%           # Level 5
-      addMapPane("flux", zIndex = 460) %>%              # Level 6
+      addMapPane("cercles", zIndex = 460) %>%           # Level 5
+      addMapPane("flux", zIndex = 450) %>%              # Level 6
       
       addProviderTiles(provider = "Esri.WorldGrayCanvas",
                        options = pathOptions(pane = "background_map")) %>%
       
       addLayersControl(
+        position = "bottomleft",
         overlayGroups = c("Communes", "Réseau routier principal", "Réseau ferré"),
         options = layersControlOptions(collapsed = FALSE)
       ) %>% 
@@ -560,24 +629,30 @@ server <- function(input, output, session) {
       addPolylines(data = st_transform(vferre, crs = 4326), color = "grey", opacity = 0.6, weight = 1.3 ,
                    stroke = TRUE, group = "Réseau ferré",  dashArray = 2,
                    options = pathOptions(pane = "voie_ferré")) %>% 
-      addPolylines(data = st_transform(f$dataflu, crs = 4326), color = "royalblue", opacity = 0.1, weight = f$dataflu$weight ,
-                   stroke = TRUE, highlight = highlightOptions(
-                     weight = 2,
-                     color = "royalblue",
-                     opacity = 1,
-                     fillOpacity = 0.6,
-                     bringToFront = F),
+      addPolylines(data = st_transform(f$dataflu, crs = 4326), color = "royalblue", opacity = 0.1, weight = f$dataflu[["linweight"]] ,
+                   stroke = TRUE, 
+                   # highlight = highlightOptions(
+                   #   weight = 2,
+                   #   color = "royalblue",
+                   #   opacity = 1,
+                   #   fillOpacity = 0.6,
+                   #   bringToFront = F),
                    options = pathOptions(pane = "flux")) %>% 
-      addCircles(lng = totDes$lon, lat = totDes$lat, radius = r$rayon, color = c$col, stroke = F,
+      addCircles(lng = c$cercle[["lon"]], 
+                 lat = c$cercle[["lat"]], 
+                 radius = r$rayon, 
+                 color = c$cercle[["col"]], 
+                 stroke = F,
+                 fillOpacity = 0.3,
                  highlight = highlightOptions(
                    weight = 3,
                    color = "white",
                    opacity = 1,
-                   fillOpacity = 0.6,
+                   fillOpacity = 0.8,
                    bringToFront = F),
                  label = sprintf(
                    "<strong>%s</strong><br/> %s %.0f", 
-                   totDes$nomcom,
+                   nc$comm,
                    nf$nom,
                    vc$valCercle
                  )%>% lapply(htmltools::HTML),
@@ -591,15 +666,6 @@ server <- function(input, output, session) {
     
     shinyjs::hideElement(id = 'loading')
   })
-  
-  # observe({
-  #   proxy <- leafletProxy(mapId = , data = )
-  #   
-  #   # Remove any existing legend, and only if the legend is
-  #   # enabled, create a new one.
-  #   proxy %>% clearControls()
-  #   proxy %>%  addLegend()
-  # })
 
   
   

@@ -35,7 +35,7 @@ flowDomPop <- matflowdom * firstflows * domflowsPop
 flowDomEmploiPop <- matflowdom * firstflows * domflowsEmploiPop
 
 # Node weights
-inflows <- data.frame(id = colnames(matflowdom), w = colSums(matflowdom))
+# inflows <- data.frame(id = colnames(matflowdom), w = colSums(matflowdom))
 
 commflu <- readOGR(dsn = "data/les-communes-generalisees-dile-de-france-parisagr.shp")
 
@@ -76,15 +76,15 @@ spLinksEmploiPop <- left_join(spLinksEmploiPop, flowDomLongEmploiPop[, c("KEY", 
 
 ###### Poid des lignes
 spLinksEmploi$weight<-  ifelse(spLinksEmploi$FLOW<1741.04,1.3,
-                               ifelse(spLinksEmploi$FLOW>=1741.04 & spLinksEmploi$FLOW<6632.37,4,8
+                               ifelse(spLinksEmploi$FLOW>=1741.04 & spLinksEmploi$FLOW<6632.37,10,20
                                       ))
 
 spLinksPop$weight<-  ifelse(spLinksPop$FLOW<1741.04,1.3,
-                               ifelse(spLinksPop$FLOW>=1741.04 & spLinksPop$FLOW<6632.37,4,8
+                               ifelse(spLinksPop$FLOW>=1741.04 & spLinksPop$FLOW<6632.37,10,20
                                       ))
 
 spLinksEmploiPop$weight<-  ifelse(spLinksEmploiPop$FLOW<1741.04,1.3,
-                               ifelse(spLinksEmploiPop$FLOW>=1741.04 & spLinksEmploiPop$FLOW<6632.37,4,8
+                               ifelse(spLinksEmploiPop$FLOW>=1741.04 & spLinksEmploiPop$FLOW<6632.37,10,20
                                       ))
 
 
@@ -124,9 +124,9 @@ x2 <- bbbox[3]
 y2 <- bbbox[4]
 sfdc <- (x2 - x1) * (y2 - y1)
 
-rayonEmploi <- sqrt(totDes$EMPLOI)*7
-rayonPopulation <- sqrt(totOri$POPULATION)*7
-rayonEmploiPop <- sqrt(totOriDes$POPetEMPLOI)*7
+# rayonEmploi <- sqrt(totDes$EMPLOI)*7
+# rayonPopulation <- sqrt(totOri$POPULATION)*7
+# rayonEmploiPop <- sqrt(totOriDes$POPetEMPLOI)*7
 
 ##Création de donées pour la taille des traits et la couleur des cercles
 fdom1 <- reshape2::melt(flowDomEmploi)
@@ -136,8 +136,7 @@ fdom1 <- merge(fdom1, totDes, by.x = "i", by.y = "DESAGR", all.x = T,
               suffixes = c("i", "j"))
 fdom1 <- merge(fdom1, totDes, by.x = "j", by.y = "DESAGR", all.x = T, 
               suffixes = c("i", "j"))
-fdom1$width <- (fdom1$fij * 8/(max(fdom1$fij) - min(fdom1$fij))) + 
-  2
+fdom1$width <- (fdom1$fij * 8/(max(fdom1$fij) - min(fdom1$fij))) + 2
 
 ###Création des couleurs pour totDes
 totDes$col <- ""

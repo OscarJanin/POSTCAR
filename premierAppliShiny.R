@@ -83,8 +83,6 @@ tabflow3 <- merge(tabflow2, tabflowOriOri, by.x = "ORI", by.y = "ORI")
 ######         Créations des indicateurs         #######
 ########################################################
 
-# pct utilisation des transports en communs
-tabflow3$PctTC <- ((tabflow3$TcOri + tabflow3$TcOriOri)*100)/(tabflow3$TcOri + tabflow3$TcOriOri + tabflow3$VpOri + tabflow3$VpOriOri + tabflow3$NmOri + tabflow3$NmOriOri)
 
 #AutoContention 
 tabflow3$AutoContention <- tabflow3$OriOriTotal / tabflow3$OriTotal
