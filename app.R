@@ -24,13 +24,12 @@ library(shinyWidgets)
 library(flows)
 library(plotly)
 
-
+############ LOAD DATA ############
 
 commsf <- read_sf(dsn = "data/les-communes-generalisees-dile-de-france.shp")
 vferre <- read_sf(dsn = "data/traces-du-reseau-ferre-idf.shp")
 routier <- read_sf(dsn = "data/Réseau_routier_magistral_existant_de_la_Région_ÎledeFrance_inscrit_sur_la_CDGT_du_Sdrif_approuvé_par_décret_le_27_décembre_2013.shp")
 coordCom <- readRDS(file = "data/coordcom.Rds")
-pomaCom <- readRDS(file = "data/pomacom.Rds")
 shape <- readOGR(dsn = "data/les-communes-generalisees-dile-de-france-parisagr2.shp")
 listPotentials <- readRDS(file = "data/listpotentials.Rds")
 tabFlows <- readRDS(file = "data/tabflows.Rds")
@@ -39,15 +38,225 @@ mat75056 <- readRDS(file = "data/mat75056")
 mat <- readRDS(file = "data/mat")
 id <- "insee"
 
-commData <- mobIndic(matrix = mat, id = "insee", shapesf = commsf)
+############ LOAD FUNCTION ##########
 
-domFlowJob <- domFlow(mat = mat75056, shape = shape ,id = id, weight = "job")
-domFlowPop <- domFlow(mat = mat75056, shape = shape ,id = id, weight = "population")
-domFlowJP <- domFlow(mat = mat75056, shape = shape ,id = id, weight = "job&pop")
+
+##############################
+#####      Function      #####
+##############################
+
+
+mobIndic <- function (matrix, shapesf, id){
+  
+  #Matrix trandformation into long format
+  longMatrix <- melt(data = matrix, varnames = c("ORI", "DES"), value.name = "FLOW")
+  
+  #Store Origins to Origins Flow Value into a df name "tabflowOriOri"
+  tabflowOriOri <- longMatrix %>% filter_( "ORI == DES")
+  colnames(tabflowOriOri) <- c("ORI", "DES","OriOriFlow")
+  
+  #Store Origins Flow Value into a df name "tabflowOri"
+  tabflowOri <-  longMatrix %>% filter_( "ORI != DES") %>% group_by(ORI) %>% summarise(OriFlow = sum(FLOW))
+  
+  #Store Destination Flow Value into a df name "tabflowDes"
+  tabflowDes <-  longMatrix %>% filter_( "ORI != DES") %>% group_by(DES) %>% summarise(DesFlow = sum(FLOW))
+  tabflow <- left_join(x = tabflowOriOri, y = tabflowOri, by = c("ORI","ORI"))
+  tabflow <- left_join(x = tabflow, y = tabflowDes, by = c("DES","DES"))
+  tabflow$DES <- NULL
+  colnames(tabflow) <- c("idflow", "OriOriFlow","OriFlow", "DesFlow")
+  
+  #Building indicators
+  tabflow$Dependency <- tabflow$OriOriFlow / (tabflow$OriFlow + tabflow$OriOriFlow)
+  tabflow$AutoSuff <- tabflow$OriOriFlow / (tabflow$DesFlow + tabflow$OriOriFlow)
+  tabflow$Mobility <- (tabflow$DesFlow+tabflow$OriFlow) / (tabflow$OriFlow + tabflow$OriOriFlow)
+  tabflow$RelBal <- (tabflow$DesFlow-tabflow$OriFlow) / (tabflow$OriFlow + tabflow$DesFlow)
+  
+  #Join with pol
+  shapesf$idshp <- shapesf[[id]]
+  shapeflow <- merge(shapesf,tabflow, by.x="idshp", by.y = "idflow")
+  
+  return(shapeflow)
+}
+
+domFlow <- function(mat, shape, id, weight){
+  # weight choices between "job", "population", "job&pop"
+  
+  if(weight=="job"){
+    weight2 <- colSums(mat)
+  } else if (weight=="population"){
+    weight2 <- rowSums(mat)
+  } else if (weight=="job&pop"){
+    weight2 <- colSums(mat) + rowSums(mat)
+  }
+  shape$idshp <- shape[[id]]
+  diag(mat) <- 0
+  firstflows <- firstflows(mat = mat, method = "nfirst",k = 1)
+  domflows <- domflows(mat = mat, w = weight2, k = 1)
+  
+  # Combine selections
+  flowDom <- mat * firstflows * domflows
+  
+  ##################
+  #   FlowDomJob
+  ##################
+  flowDomWide <- melt(data = flowDom, varnames = c("ORI", "DES"), value.name = "FLOW", as.is = TRUE) %>%
+    filter(FLOW > 0)
+  flowDomWide$KEY <- paste(flowDomWide$ORI, flowDomWide$DES, sep = "_")
+  
+  spLinks <- getLinkLayer(x = shape, xid = id, df = flowDomWide[, c("ORI", "DES")], dfid = c("ORI", "DES"))
+  spLinks$KEY <- paste(spLinks$ORI, spLinks$DES, sep = "_")
+  spLinks <- left_join(spLinks, flowDomWide[, c("KEY", "FLOW")], by = "KEY")
+  
+  ###############
+  linksClass <- getBreaks(spLinks$FLOW, n=3, method = "fisher-jenks")
+  
+  ###### Line Weight
+  spLinks$linweight<-  ifelse(spLinks$FLOW<linksClass[2],1,
+                              ifelse(spLinks$FLOW>=linksClass[2] & spLinks$FLOW<linksClass[3],10,20
+                              ))
+  ###### Création des points ######
+  #Convert shape in a sf object so we can extract centroid in the X, Y format
+  shapesf <- st_as_sf(shape)
+  shapesfCent <- st_centroid(shapesf)
+  xy <- do.call(rbind, st_geometry(shapesfCent)) %>% setNames(c("lon","lat"))
+  
+  # Transformed data
+  proj4string <- as.character(shape@proj4string)
+  shapesfCent$lon <- project(xy=xy, proj4string, inv = TRUE)[,1]
+  shapesfCent$lat <- project(xy=xy, proj4string, inv = TRUE)[,2]
+  shapesfCent <- transform(shapesfCent, lon = as.numeric(lon))
+  shapesfCent <- transform(shapesfCent, lat = as.numeric(lat))
+  
+  ###### total d'entrée et de sortie mergé avec le tableau
+  longMatrix <- melt(data = mat)
+  colnames(longMatrix) <- c("ORI", "DES","FLOW")
+  
+  OriFlow <- longMatrix %>% group_by(ORI) %>% summarise(POPULATION = sum(FLOW))
+  OriFlow <- transform(OriFlow, ORI = as.numeric(ORI))
+  
+  DesFlow <- longMatrix %>% group_by(DES) %>% summarise(JOB = sum(FLOW))
+  DesFlow <- transform(DesFlow, DES = as.numeric(DES))
+  
+  pointFlow <- left_join(OriFlow, shapesfCent, by = c("ORI"= id))
+  pointFlow <- left_join(pointFlow, DesFlow, by = c("ORI"= "DES"))
+  pointFlow$POPJOB <- pointFlow$POPULATION + pointFlow$JOB
+  
+  ##Création de données pour la couleur des cercles
+  fdom1 <- melt(flowDom)
+  names(fdom1) <- c("i", "j", "fij")
+  fdom1 <- fdom1[fdom1$fij > 0, ]
+  fdom1 <- left_join(fdom1, OriFlow, by = c("i"="ORI"))
+  
+  ###Création des couleurs pour pointFlow
+  pointFlow$col <- ""
+  pointFlow[pointFlow$ORI %in% fdom1$j & !pointFlow$ORI %in% fdom1$i, "col"] <- "brown"
+  pointFlow[pointFlow$ORI %in% fdom1$j & pointFlow$ORI %in% fdom1$i, "col"] <- "mediumorchid"
+  pointFlow[!pointFlow$ORI %in% fdom1$j & pointFlow$ORI %in% fdom1$i, "col"] <- "cornflowerblue"
+  pointFlow <- pointFlow[pointFlow$col != "", ]
+  
+  dfs <- list(pointFlow, spLinks)
+  return(dfs)
+}
+
+
+##############################
+#####      Global        #####
+##############################
+
+# Create color palette for potentials ----
+PotentialPalette <- function(ras) {
+  valRas <- c(as.matrix(ras))
+  valRasMin <- min(valRas, na.rm = TRUE)
+  valRasMax <- max(valRas, na.rm = TRUE)
+  valRange <- c(valRasMin, valRasMax)
+  if(valRasMin >= 0 & valRasMax > 0){
+    palCol <- colorRampPalette(c("grey90", "firebrick"))(100)
+  } else if (valRasMax - valRasMin < 40) {
+    palCol <- "grey90"
+  } else {
+    seqVal <- seq(valRasMin, valRasMax, 20)
+    getZero <- findInterval(0, seqVal)
+    palBlue <- colorRampPalette(c("navyblue", "grey90"))(getZero)
+    palRed <- colorRampPalette(c("grey90", "firebrick"))(length(seqVal)-getZero)
+    palCol <- c(palBlue, palRed)
+  }
+  return(palCol)
+}
+
+# Create color palette for potentials ----
+PotentialContour <- function(ras) {
+  potCont <- rasterToContourPoly(r = ras, nclass = 15)
+  potContGeo <- st_as_sf(spTransform(potCont, CRSobj = CRS("+init=epsg:4326")))
+  return(potContGeo)
+}
+
+# get top links ----
+GetLinks <- function(tabnav, spcom, ref, mod, varsort, oneunit, thres){
+  refLib <- paste0(ref, "LIB")
+  oriDes <- paste0(c("ORI", "DES"), "LIB")
+  invRef <- oriDes[oriDes != refLib]
+  print(mod)
+  if(mod == "TOUT"){
+    tabSel <- tabnav %>% 
+      group_by(ORI, DES) %>% 
+      summarise(FLOW = sum(FLOW), DIST = first(DIST), DISTTOT = sum(DISTTOT), ORILIB = first(ORILIB), DESLIB = first(DESLIB)) %>% 
+      as.data.frame(stringsAsFactors = FALSE)
+    tabSel <- tabSel[tabSel[[refLib]] == oneunit, ]
+    tabSel <- tabSel[order(tabSel[[varsort]], decreasing = TRUE), ]
+  } else {
+    tabSel <- tabnav[tabnav[[refLib]] == oneunit, ] 
+    tabSel <- tabSel[tabSel$MODE %in% mod, ] 
+    tabSel <- tabSel[order(tabSel[[varsort]], decreasing = TRUE), ]
+  }
+  nbRows <- ifelse(thres > nrow(tabSel), nrow(tabSel), thres)
+  spLinks <- getLinkLayer(x = commsf, df = tabSel[1:nbRows, c("ORI", "DES")])
+  print(spLinks)
+  spPol <- spcom[spcom$insee %in% spLinks$DES, ]
+  topDes <- list(POLYG = spPol, LINES = spLinks)
+  return(topDes)
+}
+
+# ggplot dark theme ----
+# without lines
+theme_darkhc <- theme_bw() +
+  theme(plot.background = element_rect(fill = "#272B30"),
+        axis.line = element_line(color = "grey80"),
+        panel.grid.major = element_blank(),
+        panel.grid.minor = element_blank(),
+        panel.border = element_blank(),
+        panel.background = element_rect(fill = "#272B30"),
+        axis.title = element_text(family = "sans-serif", color = "grey80"),
+        axis.text = element_text(family = "sans-serif", color = "grey80"),
+        axis.ticks = element_blank(),
+        legend.position = "none",
+        legend.background = element_rect(fill = "#272B30"))
+
+# with lines
+theme_darklinehc <- theme_bw() +
+  theme(plot.background = element_rect(fill = "#272B30"),
+        axis.line = element_line(color = "grey80"),
+        # panel.grid.major = element_line(color = "grey80", size = 0.1),
+        panel.grid.major = element_blank(),
+        panel.grid.minor = element_blank(),
+        panel.border = element_blank(),
+        panel.background = element_rect(fill = "#272B30"),
+        axis.title = element_text(family = "sans-serif", color = "grey80"),
+        axis.text = element_text(family = "sans-serif", color = "grey80"),
+        axis.ticks = element_blank(),
+        legend.position = "bottom",
+        legend.title = element_blank(),
+        legend.key =  element_blank(),
+        legend.text = element_text(family = "sans-serif", color = "grey80"),
+        legend.background = element_rect(fill = "#272B30"))
+
+#####################################################
+
+#                       UI
+
+#####################################################
 
 
 ui<- bootstrapPage(
-  
   
   # element d'affichage de la page
   theme = shinytheme("superhero"),
@@ -90,12 +299,11 @@ ui<- bootstrapPage(
                 right = "50%",
                 class = "panel panel-default",
                 shinyjs::hidden(div(id = 'loading', addSpinner(div(), spin = "cube-grid", color = "#6495ED")))
-                ),
+  ),
   
   ##############################
   #######            Map           #######
   ############################## 
-  
   
   conditionalPanel(
     condition = "input.tabs=='Mobilité'",
@@ -168,7 +376,7 @@ ui<- bootstrapPage(
                                                                     "Finger plan" = "FIN"),
                                                         selected = "ACT",
                                                         inline = T, width = "100%"
-                                                        ),
+                                           ),
                                            radioButtons(inputId = "equip", 
                                                         label = "Relocaliser les équipements",
                                                         choices = c("Configuration actuelle" = "ACT",
@@ -185,18 +393,15 @@ ui<- bootstrapPage(
                                            )
                            )
                 )
-                ),
+  ),
   
-  
-  
-        ##############################
+  ##############################
   #######          Titre           #######
-        ############################## 
+  ############################## 
   
-  
-      ##############################
+  ##############################
   ####### Panneau des indicateurs #######
-      ############################## 
+  ############################## 
   
   absolutePanel( class = "panel panel-default",
                  style = "padding : 10px",
@@ -211,11 +416,11 @@ ui<- bootstrapPage(
                              
                              tabPanel("Mobilité", 
                                       radioButtons("radioMobi", label = NULL,
-                                                   choices = list("Gravitation" = "Gravitation",
+                                                   choices = list("Solde Relatif" = "soldeRel",
                                                                   "Auto-Contention" = "Contention",
                                                                   "Auto-Suffisance" = "Suffisance",
-                                                                  "Dépendance" = "Dependance"
-                                                                  ))
+                                                                  "Mobilité" = "Mobility"
+                                                   ))
                              ),
                              
                              ##############################
@@ -268,7 +473,7 @@ ui<- bootstrapPage(
                                       actionButton("vis4_exemp", "Clés de lecture"),
                                       tags$br(),
                                       actionButton("vis4_donne", "Détails techniques")
-                              ),
+                             ),
                              
                              ##############################
                              ####### Panneau FluxDom  #####
@@ -279,11 +484,10 @@ ui<- bootstrapPage(
                                                    choices = list("Emploi" = "iEmploi",
                                                                   "Population" = "iPopulation",
                                                                   "Emploi et Population" = "iEmpPop"))
-                                      )
+                             )
                  )
-  )
-  ,
-
+  ),
+  
   absolutePanel( id = "graphPanelButton",
                  class = "panel panel-default",
                  style = "padding : 10px",
@@ -302,12 +506,14 @@ ui<- bootstrapPage(
                  width = "20%",
                  fixed = T,
                  plotlyOutput("plot1")
-  )
-  )
+  ))
 
 server <- function(input, output, session) {
   
-  # output$plot1 <- ggplot(data = tabflow, aes(x = tabflow$RelBal, y = tabflow$AutoSuff)) + geom_col()
+  commData <- mobIndic(matrix = mat, id = "insee", shapesf = commsf)
+  domFlowJob <- domFlow(mat = mat75056, shape = shape ,id = id, weight = "job")
+  domFlowPop <- domFlow(mat = mat75056, shape = shape ,id = id, weight = "population")
+  domFlowJP <- domFlow(mat = mat75056, shape = shape ,id = id, weight = "job&pop")
   
   output$plot1 <- renderPlotly({
     plot_ly(as.data.frame(commData), x = ~RelBal, y = ~AutoSuff)
@@ -318,24 +524,24 @@ server <- function(input, output, session) {
   })
   
   v <- reactiveValues(data = commData$RelBal)
-  n <- reactiveValues(nom = "Gravitation")
+  n <- reactiveValues(nom = "soldeRel")
+  
+  
   
   observeEvent(input$radioMobi,{
-    if(input$radioMobi=="Gravitation"){
+    if(input$radioMobi=="soldeRel"){
       v$data <- commData$RelBal
-      n$nom <- "Gravitation : "}
+      n$nom <- "Solde relatif : "}
     if(input$radioMobi=="Contention"){
-      v$data <- commData$Mobility
+      v$data <- commData$Dependency
       n$nom <- "Auto-Contention : "}
     if(input$radioMobi=="Suffisance"){
       v$data <- commData$AutoSuff
       n$nom <- "Auto-Suffisance : "}
-    if(input$radioMobi=="Dependance"){
-      v$data <- commData$Dependency
-      n$nom <- "Dépendance : "}
+    if(input$radioMobi=="Mobility"){
+      v$data <- commData$Mobility
+      n$nom <- "Mobilité : "}
   })
-  
-
   
   f <- reactiveValues(dataflu = domFlowJob[[2]])
   r <- reactiveValues(rayon = (sqrt(domFlowJob[[1]][["JOB"]])/pi)*20)
@@ -343,7 +549,6 @@ server <- function(input, output, session) {
   vc <- reactiveValues(valCercle = domFlowJob[[1]][["JOB"]])
   nf <- reactiveValues(nom = "Emploi : ")
   nc <- reactiveValues(comm = domFlowJob[[1]][["nomcom"]])
-
   
   observeEvent(input$radioFlu,{
     if(input$radioFlu=="iEmploi"){
@@ -404,7 +609,7 @@ server <- function(input, output, session) {
                    options = pathOptions(pane = "voie_ferré")) %>%
       addPolygons(
         fillColor = ~colorBin(palette = "Purples",bins = getBreaks(v$data, 
-        nclass = 6,method = "fisher-jenks"),domain = v$data)(v$data),
+                                                                   nclass = 6,method = "fisher-jenks"),domain = v$data)(v$data),
         weight = 0.7, opacity = 0.5,color = "grey",fillOpacity = 0.7,
         highlight = highlightOptions(
           weight = 2,
@@ -434,13 +639,12 @@ server <- function(input, output, session) {
     # Remove any existing legend, and only if the legend is
     # enabled, create a new one.
     proxy %>% clearControls()
-      proxy %>%  addLegend(pal = colorBin(palette = "Purples", 
-                bins = getBreaks(v$data,nclass = 6,method = "fisher-jenks"),
-                domain = v$data,pretty = TRUE),values = ~v$data, opacity = 0.7,
-        title = NULL, position = "bottomright")
-      
+    proxy %>%  addLegend(pal = colorBin(palette = "Purples", 
+                                        bins = getBreaks(v$data,nclass = 6,method = "fisher-jenks"),
+                                        domain = v$data,pretty = TRUE),values = ~v$data, opacity = 0.7,
+                         title = NULL, position = "bottomright")
   })
- 
+  
   ##############################
   #####      Map Flux      #####
   ##############################
@@ -467,7 +671,6 @@ server <- function(input, output, session) {
   
   observe({
     shinyjs::showElement(id = 'loading')
-    
     topDes <- GetTopLinks()
     leafletProxy("mapflu") %>%
       clearShapes() %>%
@@ -480,10 +683,9 @@ server <- function(input, output, session) {
       addPolylines(data = st_transform(vferre, crs = 4326), color = "grey", opacity = 0.6, weight = 1.3 ,
                    stroke = TRUE, group = "Réseau ferré",  dashArray = 2,
                    options = pathOptions(pane = "voie_ferré")) %>%
-      addPolygons(data = topDes$POLYG, label = topDes$POLYG$LIBGEO, stroke = TRUE, weight = 1, color = "grey35", 
+      addPolygons(data = topDes$POLYG, label = topDes$POLYG$nomcom, stroke = TRUE, weight = 1, color = "grey35", 
                   fill = TRUE, fillColor = "ghostwhite", fillOpacity = 0.3,options = pathOptions(pane = "comm")) %>%
       addPolylines(data = topDes$LINES, color = "Purple", opacity = 0.8, weight = 1.5, stroke = TRUE, options = pathOptions(pane = "lignes"))
-    
     shinyjs::hideElement(id = 'loading')
   })
   
@@ -526,7 +728,7 @@ server <- function(input, output, session) {
                      stroke = TRUE, group = "Réseau ferré",  dashArray = 2,
                      options = pathOptions(pane = "voie_ferré")) %>%
         addRasterImage(x = SelecPotential(), colors = PotentialPalette(SelecPotential()), opacity = 0.4) %>%
-        addLegend(position = "topright",
+        addLegend(position = "bottomright",
                   colors = c("#B22222", "#E5E5E5", "#000080"),
                   labels = c("Surplus d'emplois (déficit d'actifs)",
                              "Équilibre actifs-emplois",
@@ -547,7 +749,7 @@ server <- function(input, output, session) {
         addRasterImage(x = sqrt(SelecPotential()), colors = PotentialPalette(sqrt(SelecPotential())), opacity = 0.4) %>%
         addPolygons(data = DrawContour(), stroke = TRUE, fill = FALSE, color = "#a9a9a9", weight = 2,
                     label = paste(as.character(round(DrawContour()$center^2)), "actifs")) %>%
-        addLegend(position = "topright",
+        addLegend(position = "bottomright",
                   colors = c("#B22222", "#E5E5E5"),
                   labels = c("Forte densité d'actifs",
                              "Faible densité d'actifs"))
@@ -567,7 +769,7 @@ server <- function(input, output, session) {
         addRasterImage(x = sqrt(SelecPotential()), colors = PotentialPalette(sqrt(SelecPotential())), opacity = 0.4) %>%
         addPolygons(data = DrawContour(), stroke = TRUE, fill = FALSE, color = "#a9a9a9", weight = 2,
                     label = paste(as.character(round(DrawContour()$center^2)), "emplois")) %>%
-        addLegend(position = "topright",
+        addLegend(position = "bottomright",
                   colors = c("#B22222", "#E5E5E5"),
                   labels = c("Forte densité d'emplois (destination)",
                              "Faible densité d'emplois (destination)"))
@@ -591,7 +793,6 @@ server <- function(input, output, session) {
       
       addProviderTiles(provider = "Esri.WorldGrayCanvas",
                        options = pathOptions(pane = "background_map")) %>%
-      
       addLayersControl(
         position = "bottomleft",
         overlayGroups = c("Communes", "Réseau routier principal", "Réseau ferré"),
@@ -605,10 +806,8 @@ server <- function(input, output, session) {
   
   observe({
     shinyjs::showElement(id = 'loading')
-    
     leafletProxy(mapId = "mapfluDom", data = c(f$dataflu,r$rayon,c$col)) %>% 
       clearShapes() %>%
-      
       addPolygons(data = st_transform(commsf, crs = 4326), stroke = TRUE, weight = 0.5, opacity = 0.5, color = "grey", fill = TRUE,
                   fillColor = "grey", fillOpacity = 0, group = "Communes",
                   options = pathOptions(pane = "communes")) %>% 
@@ -652,29 +851,12 @@ server <- function(input, output, session) {
                    direction = "auto"),
                  options = pathOptions(pane = "cercles")
       )
-    
     shinyjs::hideElement(id = 'loading')
   })
-
   
-  
-  ##############################
-  #####      Function      #####
-  ##############################
-  
-  
-  ###Fonction pour chopper tableau dans la liste
-  GetAggregates <- reactive({
-    keyCom <- paste(input$modetrans, input$reloc, input$excess, sep = "_")
-    keyOther <- paste(input$modetrans, input$equip, input$reloc, input$excess, sep = "_")
-    comConf <- listCommuteAggregates[[keyCom]]
-    comRef <- listCommuteAggregates[["ACT_ACT_ACT"]]
-    otherConf <- listOtherAggregates[[keyOther]]
-    otherRef <- listOtherAggregates[["ACT_ACT_ACT_ACT"]]
-    setOfPlots <- PlotAggrDist(comconf = comConf, otherconf = otherConf, comref = comRef, otherref = otherRef)
-    return(setOfPlots)
-  })
-  
+  # 
+  # FONCTIONS
+  # 
   
   SelecPotential <- reactive({
     req(input$pottyp, input$potcat)
@@ -707,110 +889,9 @@ server <- function(input, output, session) {
   
   GetTopLinks <- reactive({
     req(input$fluref, input$fluvar, input$flucom, input$fluthr)
-    topLinks <- GetLinks(tabnav = tabFlows, spcom = pomaCom, ref = input$fluref, mod = input$flumod, varsort = input$fluvar, oneunit = input$flucom, thres = input$fluthr)
+    topLinks <- GetLinks(tabnav = tabFlows, spcom = commsf, ref = input$fluref, mod = input$flumod, varsort = input$fluvar, oneunit = input$flucom, thres = input$fluthr)
     return(topLinks)
   })
-  
-  
-  ##############################
-  #####      Global        #####
-  ##############################
-  
-  # Create color palette for potentials ----
-  
-  PotentialPalette <- function(ras) {
-    valRas <- c(as.matrix(ras))
-    valRasMin <- min(valRas, na.rm = TRUE)
-    valRasMax <- max(valRas, na.rm = TRUE)
-    valRange <- c(valRasMin, valRasMax)
-    if(valRasMin >= 0 & valRasMax > 0){
-      palCol <- colorRampPalette(c("grey90", "firebrick"))(100)
-    } else if (valRasMax - valRasMin < 40) {
-      palCol <- "grey90"
-    } else {
-      seqVal <- seq(valRasMin, valRasMax, 20)
-      getZero <- findInterval(0, seqVal)
-      palBlue <- colorRampPalette(c("navyblue", "grey90"))(getZero)
-      palRed <- colorRampPalette(c("grey90", "firebrick"))(length(seqVal)-getZero)
-      palCol <- c(palBlue, palRed)
-    }
-    return(palCol)
-  }
-  
-  
-  
-  # Create color palette for potentials ----
-  
-  PotentialContour <- function(ras) {
-    potCont <- rasterToContourPoly(r = ras, nclass = 15)
-    potContGeo <- st_as_sf(spTransform(potCont, CRSobj = CRS("+init=epsg:4326")))
-    return(potContGeo)
-  }
-
-  
-  # get top links ----
-  
-  GetLinks <- function(tabnav, spcom, ref, mod, varsort, oneunit, thres){
-    refLib <- paste0(ref, "LIB")
-    oriDes <- paste0(c("ORI", "DES"), "LIB")
-    invRef <- oriDes[oriDes != refLib]
-    print(mod)
-    if(mod == "TOUT"){
-      tabSel <- tabnav %>% 
-        group_by(ORI, DES) %>% 
-        summarise(FLOW = sum(FLOW), DIST = first(DIST), DISTTOT = sum(DISTTOT), ORILIB = first(ORILIB), DESLIB = first(DESLIB)) %>% 
-        as.data.frame(stringsAsFactors = FALSE)
-      tabSel <- tabSel[tabSel[[refLib]] == oneunit, ]
-      tabSel <- tabSel[order(tabSel[[varsort]], decreasing = TRUE), ]
-    } else {
-      tabSel <- tabnav[tabnav[[refLib]] == oneunit, ] 
-      tabSel <- tabSel[tabSel$MODE %in% mod, ] 
-      tabSel <- tabSel[order(tabSel[[varsort]], decreasing = TRUE), ]
-    }
-    
-    nbRows <- ifelse(thres > nrow(tabSel), nrow(tabSel), thres)
-    spLinks <- getLinkLayer(x = pomaCom, df = tabSel[1:nbRows, c("ORI", "DES")])
-    print(spLinks)
-    spPol <- spcom[spcom$CODGEO %in% spLinks$DES, ]
-    topDes <- list(POLYG = spPol, LINES = spLinks)
-    return(topDes)
-  }
-  
-  
-  
-  # ggplot dark theme ----
-  
-  # without lines
-  theme_darkhc <- theme_bw() +
-    theme(plot.background = element_rect(fill = "#272B30"),
-          axis.line = element_line(color = "grey80"),
-          panel.grid.major = element_blank(),
-          panel.grid.minor = element_blank(),
-          panel.border = element_blank(),
-          panel.background = element_rect(fill = "#272B30"),
-          axis.title = element_text(family = "sans-serif", color = "grey80"),
-          axis.text = element_text(family = "sans-serif", color = "grey80"),
-          axis.ticks = element_blank(),
-          legend.position = "none",
-          legend.background = element_rect(fill = "#272B30"))
-  
-  # with lines
-  theme_darklinehc <- theme_bw() +
-    theme(plot.background = element_rect(fill = "#272B30"),
-          axis.line = element_line(color = "grey80"),
-          # panel.grid.major = element_line(color = "grey80", size = 0.1),
-          panel.grid.major = element_blank(),
-          panel.grid.minor = element_blank(),
-          panel.border = element_blank(),
-          panel.background = element_rect(fill = "#272B30"),
-          axis.title = element_text(family = "sans-serif", color = "grey80"),
-          axis.text = element_text(family = "sans-serif", color = "grey80"),
-          axis.ticks = element_blank(),
-          legend.position = "bottom",
-          legend.title = element_blank(),
-          legend.key =  element_blank(),
-          legend.text = element_text(family = "sans-serif", color = "grey80"),
-          legend.background = element_rect(fill = "#272B30"))
   
 }
 
