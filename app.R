@@ -26,35 +26,24 @@ library(plotly)
 
 
 
-tabFlows <- readRDS(file = "data/tabflows.Rds")
-
-comm <- read_sf(dsn = "data/les-communes-generalisees-dile-de-france.shp")
 commsf <- read_sf(dsn = "data/les-communes-generalisees-dile-de-france.shp")
 vferre <- read_sf(dsn = "data/traces-du-reseau-ferre-idf.shp")
 routier <- read_sf(dsn = "data/Réseau_routier_magistral_existant_de_la_Région_ÎledeFrance_inscrit_sur_la_CDGT_du_Sdrif_approuvé_par_décret_le_27_décembre_2013.shp")
-
+coordCom <- readRDS(file = "data/coordcom.Rds")
+pomaCom <- readRDS(file = "data/pomacom.Rds")
 shape <- readOGR(dsn = "data/les-communes-generalisees-dile-de-france-parisagr2.shp")
+listPotentials <- readRDS(file = "data/listpotentials.Rds")
 
+
+mat75056 <- readRDS(file = "data/mat75056")
+mat <- readRDS(file = "data/mat")
 id <- "insee"
 
-dicoAgrParis <- tibble(OLDCODE = c("75101", "75102", "75103","75104", "75105",
-                                   "75106","75107", "75108", "75109","75110",
-                                   "75111", "75112", "75113", "75114","75115",
-                                   "75116", "75117","75118", "75119", "75120"), NEWCODE = "75056")
+commData <- mobIndic(matrix = mat, id = "insee", shapesf = commsf)
 
-tabflowdom$ORIAGR <- plyr::mapvalues(x = tabflowdom$ORI, from = dicoAgrParis$OLDCODE, to = dicoAgrParis$NEWCODE)
-tabflowdom$DESAGR <- plyr::mapvalues(x = tabflowdom$DES, from = dicoAgrParis$OLDCODE, to = dicoAgrParis$NEWCODE)
-
-mat <- prepflows(mat = tabflowdom, i = "ORIAGR", j = "DESAGR", fij = "FLOW")
-
-saveRDS(mat, file = "data/mat")
-
-commData <- mobIndic(matrix = matFlows, id = "insee", shapesf = comm)
-
-domFlowJob <- domFlow(mat = mat, shape = shape ,id = id, weight = "job")
-domFlowPop <- domFlow(mat = mat, shape = shape ,id = id, weight = "population")
-domFlowJP <- domFlow(mat = mat, shape = shape ,id = id, weight = "job&pop")
-
+domFlowJob <- domFlow(mat = mat75056, shape = shape ,id = id, weight = "job")
+domFlowPop <- domFlow(mat = mat75056, shape = shape ,id = id, weight = "population")
+domFlowJP <- domFlow(mat = mat75056, shape = shape ,id = id, weight = "job&pop")
 
 
 ui<- bootstrapPage(
@@ -211,7 +200,7 @@ ui<- bootstrapPage(
   
   absolutePanel( class = "panel panel-default",
                  style = "padding : 10px",
-                 top = "15%", 
+                 top = "2%", 
                  left = "2%",
                  right = "78%",
                  tabsetPanel(id = "tabs", 
@@ -298,7 +287,7 @@ ui<- bootstrapPage(
   absolutePanel( id = "graphPanelButton",
                  class = "panel panel-default",
                  style = "padding : 10px",
-                 top = "15%",
+                 top = "2%",
                  left = "78%",
                  right = "2%",
                  actionButton("button", "Graphiques")          
@@ -306,11 +295,11 @@ ui<- bootstrapPage(
   absolutePanel( id = "graphPanel",
                  class = "panel panel-default",
                  style = "padding : 10px",
-                 top = "25%",
-                 left = "68%",
+                 top = "12%",
+                 left = "78%",
                  right = "2%",
-                 draggable = T,
-                 width = "30%",
+                 draggable = F,
+                 width = "20%",
                  fixed = T,
                  plotlyOutput("plot1")
   )
@@ -321,7 +310,7 @@ server <- function(input, output, session) {
   # output$plot1 <- ggplot(data = tabflow, aes(x = tabflow$RelBal, y = tabflow$AutoSuff)) + geom_col()
   
   output$plot1 <- renderPlotly({
-    plot_ly(tabflow, x = ~RelBal, y = ~AutoSuff)
+    plot_ly(as.data.frame(commData), x = ~RelBal, y = ~AutoSuff)
   })
   
   observeEvent(input$button, {
@@ -592,7 +581,7 @@ server <- function(input, output, session) {
   ##############################
   
   output$mapfluDom <- renderLeaflet({
-    leaflet(options = leafletOptions(zoomControl = FALSE)) %>%
+    leaflet(options = leafletOptions(zoomControl = FALSE, incl.data=TRUE)) %>%
       addMapPane("background_map", zIndex = 410) %>%    # Level 1
       addMapPane("communes", zIndex = 420) %>%          # Level 2
       addMapPane("réseau_routier", zIndex = 430) %>%    # Level 3
