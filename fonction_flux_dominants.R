@@ -1,38 +1,33 @@
-library(flows)
-library(cartography)
+library(reshape2)         # transformation format long, format large
+library(sp)               # objets spatiaux
+library(rgdal)            # fonctions de la bibliothèque GDAL
+library(ggplot2)          # fonctions graphiques
+library(ggthemes)  
+library(gstat)            # thèmes pour ggplot
+library(grid)             # fonction arrow
+library(cartography)      # cartographie thématique
+library(RColorBrewer)     # palettes de couleurs de C. Brewer
+library(dplyr)            # manipulation de tableaux
+library(shiny)
 library(sf)
-library(dplyr)
+library(classInt)
+library(leaflet)
+library(shinyjs)
+library(shinycssloaders)
+library(shinydashboard)
+library(shinythemes)
+library(emojifont)
+library(raster)
+library(SpatialPosition)
+library(shinyBS)
+library(shinyWidgets)
+library(flows)
+library(plotly)
 
-
-
-shape <- readOGR(dsn = "data/les-communes-generalisees-dile-de-france-parisagr2.shp")
-
-id <- "insee"
-
-############################################################################################################################
-###############################################   Préparation de données ###################################################
-############################################################################################################################
-
-dicoAgrParis <- tibble(OLDCODE = c("75101", "75102", "75103","75104", "75105", 
-                                   "75106","75107", "75108", "75109","75110", 
-                                   "75111", "75112", "75113", "75114","75115", 
-                                   "75116", "75117","75118", "75119", "75120"), NEWCODE = "75056")
-
-tabflowdom$ORIAGR <- plyr::mapvalues(x = tabflowdom$ORI, from = dicoAgrParis$OLDCODE, to = dicoAgrParis$NEWCODE)
-tabflowdom$DESAGR <- plyr::mapvalues(x = tabflowdom$DES, from = dicoAgrParis$OLDCODE, to = dicoAgrParis$NEWCODE)
-
-
-mat <- prepflows(mat = tabflowdom, i = "ORIAGR", j = "DESAGR", fij = "FLOW")
-
-############################################################################################################################
-############################################################################################################################
-############################################################################################################################
 
 
 domFlow <- function(mat, shape, id, weight){
   # weight choices between "job", "population", "job&pop"
-  
-
   
   if(weight=="job"){
     weight2 <- colSums(mat)
@@ -73,7 +68,6 @@ domFlow <- function(mat, shape, id, weight){
                                  ifelse(spLinks$FLOW>=linksClass[2] & spLinks$FLOW<linksClass[3],10,20
                                  ))
   
-  
   ###### Création des points ######
   
   #Convert shape in a sf object so we can extract centroid in the X, Y format
@@ -81,15 +75,12 @@ domFlow <- function(mat, shape, id, weight){
   shapesfCent <- st_centroid(shapesf)
   xy <- do.call(rbind, st_geometry(shapesfCent)) %>% setNames(c("lon","lat"))
 
-  
   # Transformed data
   proj4string <- as.character(shape@proj4string)
   shapesfCent$lon <- project(xy=xy, proj4string, inv = TRUE)[,1]
   shapesfCent$lat <- project(xy=xy, proj4string, inv = TRUE)[,2]
   shapesfCent <- transform(shapesfCent, lon = as.numeric(lon))
   shapesfCent <- transform(shapesfCent, lat = as.numeric(lat))
-  # latlon <- data.frame(lat=pj$y, lon=pj$x)
-  # print(latlon)
   
   ###### total d'entrée et de sortie mergé avec le tableau
   
@@ -98,14 +89,9 @@ domFlow <- function(mat, shape, id, weight){
   
   OriFlow <- longMatrix %>% group_by(ORI) %>% summarise(POPULATION = sum(FLOW))
   OriFlow <- transform(OriFlow, ORI = as.numeric(ORI))
-  # OriFlow <- left_join(OriFlow, shapesfCent, by = c("ORI"= id))
   
   DesFlow <- longMatrix %>% group_by(DES) %>% summarise(JOB = sum(FLOW))
   DesFlow <- transform(DesFlow, DES = as.numeric(DES))
-  # DesFlow <- left_join(DesFlow, shapesfCent, by = c("DES"= id))
-  
-  # OriDesFlow <- OriFlow
-  # OriDesFlow$POPJOB <- OriFlow$POPULATION + DesFlow$JOB
   
   pointFlow <- left_join(OriFlow, shapesfCent, by = c("ORI"= id))
   pointFlow <- left_join(pointFlow, DesFlow, by = c("ORI"= "DES"))
@@ -124,13 +110,8 @@ domFlow <- function(mat, shape, id, weight){
   pointFlow[!pointFlow$ORI %in% fdom1$j & pointFlow$ORI %in% fdom1$i, "col"] <- "cornflowerblue"
   pointFlow <- pointFlow[pointFlow$col != "", ]
   
-  
   dfs <- list(pointFlow, spLinks)
   return(dfs)
 }
 
-domFloow <- domFlow(mat = mat, shape = shape ,id = id, weight = "job")
-
-domFloow[1]
-domFloow[2]
 
