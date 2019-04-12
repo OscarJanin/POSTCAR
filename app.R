@@ -35,7 +35,6 @@ shape <- readOGR(dsn = "data/les-communes-generalisees-dile-de-france-parisagr2.
 listPotentials <- readRDS(file = "data/listpotentials.Rds")
 tabFlows <- readRDS(file = "data/tabflows.Rds")
 
-
 mat75056 <- readRDS(file = "data/mat75056")
 mat <- readRDS(file = "data/mat")
 id <- "insee"
