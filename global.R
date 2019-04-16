@@ -24,15 +24,15 @@ library(shinyWidgets)
 library(flows)
 library(plotly)
 
-
 ############ LOAD DATA ############
 commsf <- readRDS(file = "data/communes.Rds")
-vferre <- readRDS("data/vferre.Rds")
-routier <- readRDS("data/routier.Rds")
+vferre <- readRDS(file = "data/vferre.Rds")
+routier <- readRDS(file = "data/routier.Rds")
 coordCom <- readRDS(file = "data/coordcom.Rds")
 shape <- readRDS(file = "data/communesAggrege.Rds")
 listPotentials <- readRDS(file = "data/listpotentials.Rds")
 tabFlows <- readRDS(file = "data/tabflows.Rds")
+station <- readRDS(file = "data/station.Rds")
 
 mat75056 <- readRDS(file = "data/mat75056.Rds")
 mat <- readRDS(file = "data/mat.Rds")

@@ -72,16 +72,18 @@ shinyServer(function(input, output, session) {
     leaflet(options = leafletOptions(zoomControl = FALSE)) %>%
       addMapPane("background_map", zIndex = 410) %>%  # Level 1
       addMapPane("réseau_routier", zIndex = 420) %>%  # Level 2
-      addMapPane("voie_ferré", zIndex = 430) %>%      # Level 3
+      addMapPane("voie_ferré", zIndex = 430) %>%  # Level 3
+      addMapPane("station", zIndex = 440) %>%  # Level 4
       addProviderTiles(provider = "Esri.WorldGrayCanvas") %>%
       addLayersControl(
         position = "bottomleft",
-        overlayGroups = c("Réseau routier principal", "Réseau ferré"),
+        overlayGroups = c("Réseau routier principal", "Réseau ferré","Stations ferroviaires"),
         options = layersControlOptions(collapsed = FALSE)
       ) %>% 
       fitBounds(lng1 = 1.44, lat1 = 48.12, lng2 = 3.55, lat2 = 49.24)%>% 
       hideGroup("Réseau routier principal") %>% 
-      hideGroup("Réseau ferré")
+      hideGroup("Réseau ferré") %>% 
+      hideGroup("Stations ferroviaires")
   })
   
   observe({
@@ -99,9 +101,19 @@ shinyServer(function(input, output, session) {
                    color = "grey", 
                    opacity = 1, 
                    weight = 1 ,
-                   stroke = TRUE, group = "Réseau ferré",  
+                   stroke = TRUE, 
+                   group = "Réseau ferré",  
                    dashArray = 2,
                    options = pathOptions(pane = "voie_ferré")) %>%
+      addCircleMarkers(lng = station$longitude, 
+                       lat = station$latitude, 
+                       radius = 2,
+                       stroke = F,
+                       color = "grey",
+                       fillOpacity = 0.8,
+                       group = "Stations ferroviaires",
+                       options = pathOptions(pane = "station")) %>% 
+      
       addPolygons(
         fillColor = ~colorBin(palette = "Purples",
                               bins = getBreaks(v$data, nclass = 6,method = "fisher-jenks"),
@@ -150,17 +162,19 @@ shinyServer(function(input, output, session) {
       addMapPane("réseau_routier", zIndex = 430) %>%    # Level 3
       addMapPane("voie_ferré", zIndex = 440) %>%        # Level 4
       addMapPane("comm", zIndex = 450) %>%              # Level 5
-      addMapPane("lignes", zIndex = 460) %>%            # Level 6
+      addMapPane("station", zIndex = 460) %>%            # Level 6
+      addMapPane("lignes", zIndex = 470) %>%           # Level 7
       addProviderTiles(provider = "Esri.WorldGrayCanvas") %>%
       addLayersControl(
         position = "bottomleft",
-        overlayGroups = c("Communes", "Réseau routier principal", "Réseau ferré"),
+        overlayGroups = c("Communes", "Réseau routier principal", "Réseau ferré", "Stations ferroviaires"),
         options = layersControlOptions(collapsed = FALSE)
       ) %>% 
       fitBounds(lng1 = 1.44, lat1 = 48.12, lng2 = 3.55, lat2 = 49.24)%>% 
       hideGroup("Réseau routier principal") %>% 
       hideGroup("Réseau ferré") %>% 
-      hideGroup("Communes")
+      hideGroup("Communes") %>% 
+      hideGroup("Stations ferroviaires")
   })
   
   observe({
@@ -177,6 +191,14 @@ shinyServer(function(input, output, session) {
       addPolylines(data = st_transform(vferre, crs = 4326), color = "grey", opacity = 0.6, weight = 1.3 ,
                    stroke = TRUE, group = "Réseau ferré",  dashArray = 2,
                    options = pathOptions(pane = "voie_ferré")) %>%
+      addCircleMarkers(lng = station$longitude, 
+                       lat = station$latitude, 
+                       radius = 2,
+                       stroke = F,
+                       color = "grey",
+                       fillOpacity = 0.8,
+                       group = "Stations ferroviaires",
+                       options = pathOptions(pane = "station")) %>%
       addPolygons(data = topDes$POLYG, label = topDes$POLYG$nomcom, stroke = TRUE, weight = 1, color = "grey35", 
                   fill = TRUE, fillColor = "ghostwhite", fillOpacity = 0.3,options = pathOptions(pane = "comm")) %>%
       addPolylines(data = topDes$LINES, color = "Purple", opacity = 0.8, weight = 1.5, stroke = TRUE, options = pathOptions(pane = "lignes"))
@@ -190,16 +212,18 @@ shinyServer(function(input, output, session) {
       addMapPane("communes", zIndex = 420) %>%          # Level 2
       addMapPane("réseau_routier", zIndex = 430) %>%    # Level 3
       addMapPane("voie_ferré", zIndex = 440) %>%        # Level 4
+      addMapPane("station", zIndex = 450) %>% 
       addProviderTiles(provider = "Esri.WorldGrayCanvas") %>%
       addLayersControl(
         position = "bottomleft",
-        overlayGroups = c("Communes", "Réseau routier principal", "Réseau ferré"),
+        overlayGroups = c("Communes", "Réseau routier principal", "Réseau ferré", "Stations ferroviaires"),
         options = layersControlOptions(collapsed = FALSE)
       ) %>% 
       fitBounds(lng1 = 1.44, lat1 = 48.12, lng2 = 3.55, lat2 = 49.24) %>% 
       hideGroup("Réseau routier principal") %>% 
       hideGroup("Réseau ferré") %>% 
-      hideGroup("Communes")
+      hideGroup("Communes") %>% 
+      hideGroup("Stations ferroviaires")
   })
   
   observe({
@@ -218,6 +242,14 @@ shinyServer(function(input, output, session) {
         addPolylines(data = st_transform(vferre, crs = 4326), color = "grey", opacity = 0.6, weight = 1.3 ,
                      stroke = TRUE, group = "Réseau ferré",  dashArray = 2,
                      options = pathOptions(pane = "voie_ferré")) %>%
+        addCircleMarkers(lng = station$longitude, 
+                         lat = station$latitude, 
+                         radius = 2,
+                         stroke = F,
+                         color = "grey",
+                         fillOpacity = 0.8,
+                         group = "Stations ferroviaires",
+                         options = pathOptions(pane = "station")) %>%
         addRasterImage(x = SelecPotential(), colors = PotentialPalette(SelecPotential()), opacity = 0.4) %>%
         addLegend(position = "bottomright",
                   colors = c("#B22222", "#E5E5E5", "#000080"),
@@ -237,6 +269,14 @@ shinyServer(function(input, output, session) {
         addPolylines(data = st_transform(vferre, crs = 4326), color = "grey", opacity = 0.6, weight = 1.3 ,
                      stroke = TRUE, group = "Réseau ferré",  dashArray = 2,
                      options = pathOptions(pane = "voie_ferré")) %>%
+        addCircleMarkers(lng = station$longitude, 
+                         lat = station$latitude, 
+                         radius = 2,
+                         stroke = F,
+                         color = "grey",
+                         fillOpacity = 0.8,
+                         group = "Stations ferroviaires",
+                         options = pathOptions(pane = "station")) %>%
         addRasterImage(x = sqrt(SelecPotential()), colors = PotentialPalette(sqrt(SelecPotential())), opacity = 0.4) %>%
         addPolygons(data = DrawContour(), stroke = TRUE, fill = FALSE, color = "#a9a9a9", weight = 2,
                     label = paste(as.character(round(DrawContour()$center^2)), "actifs")) %>%
@@ -257,6 +297,14 @@ shinyServer(function(input, output, session) {
         addPolylines(data = st_transform(vferre, crs = 4326), color = "grey", opacity = 0.6, weight = 1.3 ,
                      stroke = TRUE, group = "Réseau ferré",  dashArray = 2,
                      options = pathOptions(pane = "voie_ferré")) %>%
+        addCircleMarkers(lng = station$longitude, 
+                         lat = station$latitude, 
+                         radius = 2,
+                         stroke = F,
+                         color = "grey",
+                         fillOpacity = 0.8,
+                         group = "Stations ferroviaires",
+                         options = pathOptions(pane = "station")) %>%
         addRasterImage(x = sqrt(SelecPotential()), colors = PotentialPalette(sqrt(SelecPotential())), opacity = 0.4) %>%
         addPolygons(data = DrawContour(), stroke = TRUE, fill = FALSE, color = "#a9a9a9", weight = 2,
                     label = paste(as.character(round(DrawContour()$center^2)), "emplois")) %>%
@@ -276,20 +324,22 @@ shinyServer(function(input, output, session) {
       addMapPane("communes", zIndex = 420) %>%          # Level 2
       addMapPane("réseau_routier", zIndex = 430) %>%    # Level 3
       addMapPane("voie_ferré", zIndex = 440) %>%        # Level 4
-      addMapPane("flux", zIndex = 450) %>%              # Level 5
-      addMapPane("cercles", zIndex = 460) %>%           # Level 6
+      addMapPane("station", zIndex = 450) %>%           # Level 5
+      addMapPane("flux", zIndex = 460) %>%              # Level 6
+      addMapPane("cercles", zIndex = 470) %>%           # Level 7
       
       addProviderTiles(provider = "Esri.WorldGrayCanvas",
                        options = pathOptions(pane = "background_map")) %>%
       addLayersControl(
         position = "bottomleft",
-        overlayGroups = c("Communes", "Réseau routier principal", "Réseau ferré"),
+        overlayGroups = c("Communes", "Réseau routier principal", "Réseau ferré", "Stations ferroviaires"),
         options = layersControlOptions(collapsed = FALSE)
       ) %>% 
       fitBounds(lng1 = 1.44, lat1 = 48.12, lng2 = 3.55, lat2 = 49.24)%>% 
       hideGroup("Réseau routier principal") %>% 
       hideGroup("Réseau ferré") %>% 
-      hideGroup("Communes")
+      hideGroup("Communes") %>% 
+      hideGroup("Stations ferroviaires")
   })
   
   observe({
@@ -308,6 +358,14 @@ shinyServer(function(input, output, session) {
       addPolylines(data = st_transform(f$dataflu, crs = 4326), color = "royalblue", opacity = 0.1, weight = f$dataflu[["linweight"]] ,
                    stroke = TRUE,
                    options = pathOptions(pane = "flux")) %>% 
+      addCircleMarkers(lng = station$longitude, 
+                       lat = station$latitude, 
+                       radius = 2,
+                       stroke = F,
+                       color = "grey",
+                       fillOpacity = 0.8,
+                       group = "Stations ferroviaires",
+                       options = pathOptions(pane = "station")) %>%
       addCircles(lng = c$cercle[["lon"]], 
                  lat = c$cercle[["lat"]], 
                  radius = r$rayon, 
