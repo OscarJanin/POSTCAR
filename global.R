@@ -21,24 +21,47 @@ library(raster)
 library(SpatialPosition)
 library(shinyBS)
 library(shinyWidgets)
-library(flows)
 library(plotly)
+library(igraph)
+library(tidyverse)
 
 ############ LOAD DATA ############
-commsf <- readRDS(file = "data/communes.Rds")
+
+shape <- readRDS(file = "data/communes.Rds")
+shapeAgr <- readRDS(file = "data/communesAggrege.Rds")
+poptab <- readRDS(file = "data/poptab.Rds")
+poptabAgr <- readRDS(file = "data/poptabAgr.Rds")
+tabFlows <- readRDS(file = "data/tabflows.Rds")
+tabFlowsAgr <- readRDS(file = "data/tabflowsAgr.Rds")
+
+tabFlowsAgrNoMode <- readRDS("data/tabflowsAgr.Rds") %>% 
+  group_by(ORIAGR, DESAGR) %>% 
+  summarise(FLOW = sum(FLOW))
+
+tabFlowsNoMode <- readRDS("data/tabflows.Rds") %>% 
+  group_by(ORI, DES) %>% 
+  summarise(FLOW = sum(FLOW))
+
+#les shapes doivent être de la forme S4 avec en premiere colonne, l'identifiant
+shapeSf <- st_as_sf(shape)
+shapeSf <- shapeSf[,c(3,2,1,4,5,6)]
+commsf <- st_as_sf(shape)
+commsf <- commsf[,c(3,2,1,4,5,6)]
+
 vferre <- readRDS(file = "data/vferre.Rds")
 routier <- readRDS(file = "data/routier.Rds")
 coordCom <- readRDS(file = "data/coordcom.Rds")
-shape <- readRDS(file = "data/communesAggrege.Rds")
-listPotentials <- readRDS(file = "data/listpotentials.Rds")
-tabFlows <- readRDS(file = "data/tabflows.Rds")
 station <- readRDS(file = "data/station.Rds")
+
+listPotentials <- readRDS(file = "data/listpotentials.Rds")
 
 mat75056 <- readRDS(file = "data/mat75056.Rds")
 mat <- readRDS(file = "data/mat.Rds")
 id <- "insee"
 
+
 ############ LOAD FUNCTION ##########
+
 mobIndic <- function (matrix, shapesf, id){
   
   longMatrix <- melt(data = matrix, varnames = c("ORI", "DES"), value.name = "FLOW")
@@ -68,79 +91,90 @@ mobIndic <- function (matrix, shapesf, id){
   return(shapeflow)
 }
 
-# weight choices between "job", "population", "job&pop"
-domFlow <- function(mat, shape, id, weight){
+
+nystuen_dacey <- function(
+  tabflows,   # data.frame with commuting flows, long format (origin, destination, flow)
+  poptab,     # table with population, flows summary (total at ori, des, intra) and core id
+  idfield,    # CHAR, name of the id field in the population table (poptab)
+  targetfield,# CHAR, name of the variable used for weighting
+  threspct,    # threshold for defining max flow
+  shape,
+  shapeId
+  )
+{
   
-  if(weight=="job"){
-    weight2 <- colSums(mat)
-  } else if (weight=="population"){
-    weight2 <- rowSums(mat)
-  } else if (weight=="job&pop"){
-    weight2 <- colSums(mat) + rowSums(mat)
-  }
-  shape$idshp <- shape[[id]]
-  diag(mat) <- 0
-  firstflows <- firstflows(mat = mat, method = "nfirst",k = 1)
-  domflows <- domflows(mat = mat, w = weight2, k = 1)
+  #prepare data
+  colnames(tabflows) <- c("ORI", "DES", "FLOW")
+  tabflows <- tabflows %>%    #on élimine les flux intra
+    filter(ORI != DES)
   
-  # Combine selections
-  flowDom <- mat * firstflows * domflows
+  poptab <- poptab %>%  #on crée un tableau propre ne comportant que l'origine, destination et la variable choisie pour pondérer (WGT)
+    transmute(ORI = poptab[, idfield],
+              DES = poptab[, idfield],
+              WGT = poptab[, targetfield])
   
-  # Links Creation and merging with the flow matrix
-  flowDomWide <- melt(data = flowDom, varnames = c("ORI", "DES"), value.name = "FLOW", as.is = TRUE) %>% filter(FLOW > 0)
-  flowDomWide$KEY <- paste(flowDomWide$ORI, flowDomWide$DES, sep = "_")
-  spLinks <- getLinkLayer(x = shape, xid = id, df = flowDomWide[, c("ORI", "DES")], dfid = c("ORI", "DES"))
+  tabFlowsSum <- tabflows %>% #Tableau des sommes de flux à l'origine
+    group_by(ORI) %>% 
+    summarise(SUMFLOW = sum(FLOW, na.rm = TRUE))
+  
+  tabFlowsMax <- tabflows %>% #tableau des flux maximums à l'origine et du pourcentage que représente ce flux par rapport au flux total de la commune
+    group_by(ORI) %>% 
+    arrange(desc(FLOW)) %>% 
+    slice(1) %>% 
+    left_join(y = tabFlowsSum, by = "ORI") %>% 
+    mutate(PCTMAX = FLOW / SUMFLOW) %>% 
+    filter(PCTMAX > threspct)  #ne conserve que les communes dont le flux est superieur au seuil rentré au préalable
+  
+  tabFlowsAggr <- tabFlowsMax %>%   #Jointure des tableaux des flux maximum et de la variable de pondération (à l'origine et à la destination)
+    left_join(x = ., y = poptab[, c("ORI", "WGT")], by = "ORI") %>% 
+    left_join(x = ., y = poptab[, c("DES", "WGT")], by = "DES") 
+  
+  colnames(tabFlowsAggr)[6:7] <- c("WGTORI", "WGTDES")
+  
+  tabFlowsAggr <- tabFlowsAggr %>% filter(WGTORI < WGTDES) # ne garder que les flux dont la valeur de pondération à la destination est plus grande qu'a l'origine
+  
+  graphFlows <- graph.data.frame(d = tabFlowsAggr[, c("ORI", "DES")], directed = TRUE) #Pour chaque commune on représente le lien du flux le plus élevé
+  V(graphFlows)$DEGIN <- degree(graphFlows, mode = "in")  #nombre de flux entrant par communes
+  graphTab <- get.data.frame(x = graphFlows, what = "vertices")
+
+  degSorted <- sort(V(graphFlows)$DEGIN, decreasing = TRUE) #on trie du plus grand au plus petit
+  degSecond <- degSorted[2] + 1 #on dégage la seconde valeur la plus grande
+
+  tabflows <- tabflows %>% # Obtenir le statut des flux d'une commune à l'autre
+    left_join(y = graphTab, by = c("ORI" = "name")) %>%
+    left_join(y = graphTab, by = c("DES" = "name")) %>%
+    mutate(STATUSORI = ifelse(is.na(DEGIN.x) | DEGIN.x == 0, 0, ifelse(DEGIN.x == 1 | DEGIN.x == 2, 1, ifelse(DEGIN.x < degSecond, 2, 3))),
+           STATUSDES = ifelse(is.na(DEGIN.y) | DEGIN.y == 0, 0, ifelse(DEGIN.y == 1 | DEGIN.y == 2, 1, ifelse(DEGIN.y < degSecond, 2, 3))),
+           STATUS = paste(STATUSORI, STATUSDES, sep = "_")) %>%
+    select(ORI, DES, STATUS)
+
+  graphTab <- graphTab %>% #Obtenir le statut de pole d'emploi des communes (petit 1, moyen 2, grand 3)
+    mutate(STATUS = ifelse(is.na(DEGIN) | DEGIN == 0, 0,
+                           ifelse(DEGIN == 1 | DEGIN == 2, 1,
+                                  ifelse(DEGIN < degSecond, 2, 3))))
+  
+  #Get geometry for tabflows
+  spLinks <- getLinkLayer(x = shape, xid = shapeId, df = tabFlowsAggr[, c("ORI", "DES")], dfid = c("ORI", "DES"))
   spLinks$KEY <- paste(spLinks$ORI, spLinks$DES, sep = "_")
-  spLinks <- left_join(spLinks, flowDomWide[, c("KEY", "FLOW")], by = "KEY")
+  tabflows$KEY <- paste(tabflows$ORI, tabflows$DES, sep = "_")
+  tabflows <- left_join(spLinks, tabflows[, c("KEY", "STATUS")], by = "KEY")
+  # tabflows <- left_join(spLinks, tabflows[,"KEY"], by = "KEY")
+  tabflows$KEY <- NULL
   
-  #Create class for links break
-  linksClass <- getBreaks(spLinks$FLOW, n=3, method = "fisher-jenks")
-  
-  # Line Weight
-  spLinks$linweight<-  ifelse(spLinks$FLOW<linksClass[2],1,ifelse(spLinks$FLOW>=linksClass[2] & spLinks$FLOW<linksClass[3],10,20))
-  
-  
-  ##Create Points##
-  #Convert shape in a sf object so we can extract centroid in the X, Y format
-  shapesf <- st_as_sf(shape)
-  shapesfCent <- st_centroid(shapesf)
-  xy <- do.call(rbind, st_geometry(shapesfCent)) %>% setNames(c("lon","lat"))
-  
+  #Get geometry for graphTab
+  shapeSf <- st_as_sf(shape)
+  shapesfCent <- st_centroid(shapeSf)
   proj4string <- as.character(shape@proj4string)
+  xy <- do.call(rbind, st_geometry(shapesfCent))
   shapesfCent$lon <- project(xy=xy, proj4string, inv = TRUE)[,1]
   shapesfCent$lat <- project(xy=xy, proj4string, inv = TRUE)[,2]
-  shapesfCent <- transform(shapesfCent, lon = as.numeric(lon))
-  shapesfCent <- transform(shapesfCent, lat = as.numeric(lat))
+  graphTab <- transform(graphTab, name = as.numeric(name))
+  graphTab <- left_join(graphTab, shapesfCent, by = c("name"= shapeId))
+  graphTab <- transform(graphTab, name = as.character(name))
+  graphTab <- left_join(graphTab, poptab, by = c("name"= "ORI"))
   
-  #Create income and outcome values
-  longMatrix <- melt(data = mat)
-  colnames(longMatrix) <- c("ORI", "DES","FLOW")
-  
-  OriFlow <- longMatrix %>% group_by(ORI) %>% summarise(POPULATION = sum(FLOW))
-  OriFlow <- transform(OriFlow, ORI = as.numeric(ORI))
-  
-  DesFlow <- longMatrix %>% group_by(DES) %>% summarise(JOB = sum(FLOW))
-  DesFlow <- transform(DesFlow, DES = as.numeric(DES))
-  
-  pointFlow <- left_join(OriFlow, shapesfCent, by = c("ORI"= id))
-  pointFlow <- left_join(pointFlow, DesFlow, by = c("ORI"= "DES"))
-  pointFlow$POPJOB <- pointFlow$POPULATION + pointFlow$JOB
-  
-  #Create Circles colour
-  fdom1 <- melt(flowDom)
-  names(fdom1) <- c("i", "j", "fij")
-  fdom1 <- fdom1[fdom1$fij > 0, ]
-  fdom1 <- left_join(fdom1, OriFlow, by = c("i"="ORI"))
-  pointFlow$col <- ""
-  pointFlow[pointFlow$ORI %in% fdom1$j & !pointFlow$ORI %in% fdom1$i, "col"] <- "brown"
-  pointFlow[pointFlow$ORI %in% fdom1$j & pointFlow$ORI %in% fdom1$i, "col"] <- "mediumorchid"
-  pointFlow[!pointFlow$ORI %in% fdom1$j & pointFlow$ORI %in% fdom1$i, "col"] <- "cornflowerblue"
-  pointFlow <- pointFlow[pointFlow$col != "", ]
-  
-  dfs <- list(pointFlow, spLinks)
-  return(dfs)
+  return(list( PTS = graphTab, FLOWS = tabflows))
 }
-
 
 ##############################
 #####      Global        #####

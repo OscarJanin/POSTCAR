@@ -2,9 +2,10 @@ shinyServer(function(input, output, session) {
   
   #Creation of variables specifically
   commData <- mobIndic(matrix = mat, id = "insee", shapesf = commsf)
-  domFlowJob <- domFlow(mat = mat75056, shape = shape ,id = id, weight = "job")
-  domFlowPop <- domFlow(mat = mat75056, shape = shape ,id = id, weight = "population")
-  domFlowJP <- domFlow(mat = mat75056, shape = shape ,id = id, weight = "job&pop")
+  
+  domFlowJob <- nystuen_dacey(tabFlowsAgrNoMode, poptabAgr, idfield = "insee", targetfield  = "TOTDES", threspct = 0, shapeAgr, shapeId = "insee")
+  domFlowPop <- nystuen_dacey(tabFlowsAgrNoMode, poptabAgr, idfield = "insee", targetfield = "TOTORI", threspct = 0, shapeAgr, shapeId = "insee")
+  domFlowJP <- nystuen_dacey(tabFlowsAgrNoMode, poptabAgr, idfield = "insee", targetfield = "TOTINTRA", threspct = 0, shapeAgr, shapeId = "insee")
   
   #Graphic Display
   output$plot1 <- renderPlotly({
@@ -37,33 +38,33 @@ shinyServer(function(input, output, session) {
   
   #Get reactive value based on radiobutton (for 4th panel "flow")
   f <- reactiveValues(dataflu = domFlowJob[[2]])
-  r <- reactiveValues(rayon = (sqrt(domFlowJob[[1]][["JOB"]])/pi)*20)
+  r <- reactiveValues(rayon = (sqrt(domFlowJob[[1]][["WGT"]])/pi)*20)
   c <- reactiveValues(cercle = domFlowJob[[1]])
-  vc <- reactiveValues(valCercle = domFlowJob[[1]][["JOB"]])
+  vc <- reactiveValues(valCercle = domFlowJob[[1]][["WGT"]])
   nf <- reactiveValues(nom = "Emploi : ")
   nc <- reactiveValues(comm = domFlowJob[[1]][["nomcom"]])
   
   observeEvent(input$radioFlu,{
     if(input$radioFlu=="iEmploi"){
       f$dataflu <- domFlowJob[[2]]
-      r$rayon <- (sqrt(domFlowJob[[1]][["JOB"]])/pi)*20
+      r$rayon <- (sqrt(domFlowJob[[1]][["WGT"]])/pi)*20
       c$cercle <- domFlowJob[[1]]
-      vc$valCercle <- domFlowJob[[1]][["JOB"]]
+      vc$valCercle <- domFlowJob[[1]][["WGT"]]
       nf$nom <- "Emploi : "
       nc$comm <- domFlowJob[[1]][["nomcom"]]}
     if(input$radioFlu=="iPopulation"){
       f$dataflu <- domFlowPop[[2]]
-      r$rayon <- (sqrt(domFlowPop[[1]][["POPULATION"]])/pi)*20
+      r$rayon <- (sqrt(domFlowPop[[1]][["WGT"]])/pi)*20
       c$cercle <- domFlowPop[[1]]
-      vc$valCercle <- domFlowPop[[1]][["POPULATION"]]
+      vc$valCercle <- domFlowPop[[1]][["WGT"]]
       nf$nom <- "Population : "
       nc$comm <- domFlowPop[[1]][["nomcom"]]}
     if(input$radioFlu=="iEmpPop"){
       f$dataflu <- domFlowJP[[2]]
-      r$rayon <- (sqrt(domFlowJP[[1]][["POPJOB"]])/pi)*20
+      r$rayon <- (sqrt(domFlowJP[[1]][["WGT"]])/pi)*20
       c$cercle <- domFlowJP[[1]]
-      vc$valCercle <- domFlowJP[[1]][["POPJOB"]]
-      nf$nom <- "Emploi et Population : "
+      vc$valCercle <- domFlowJP[[1]][["WGT"]]
+      nf$nom <- "Flux intra-communaux : "
       nc$comm <- domFlowJP[[1]][["nomcom"]]}
   })
   
@@ -355,9 +356,9 @@ shinyServer(function(input, output, session) {
       addPolylines(data = st_transform(vferre, crs = 4326), color = "grey", opacity = 0.6, weight = 1.3 ,
                    stroke = TRUE, group = "Réseau ferré",  dashArray = 2,
                    options = pathOptions(pane = "voie_ferré")) %>% 
-      addPolylines(data = st_transform(f$dataflu, crs = 4326), color = "royalblue", opacity = 0.1, weight = f$dataflu[["linweight"]] ,
+      addPolylines(data = st_transform(f$dataflu, crs = 4326), color = "royalblue", opacity = 0.1, weight = 1 ,
                    stroke = TRUE,
-                   options = pathOptions(pane = "flux")) %>% 
+                   options = pathOptions(pane = "flux")) %>%
       addCircleMarkers(lng = station$longitude, 
                        lat = station$latitude, 
                        radius = 2,
@@ -369,15 +370,15 @@ shinyServer(function(input, output, session) {
       addCircles(lng = c$cercle[["lon"]], 
                  lat = c$cercle[["lat"]], 
                  radius = r$rayon, 
-                 color = c$cercle[["col"]], 
+                 color = ~colorNumeric(palette = c("#849EB8", "#4D82B8","#375E84","#283038"), domain = domFlowJob[[1]][["STATUS"]])(domFlowJob[[1]][["STATUS"]]), 
                  stroke = F,
-                 fillOpacity = 0.3,
+                 fillOpacity = 0.6,
                  highlight = highlightOptions(
                    weight = 3,
                    color = "white",
                    opacity = 1,
                    fillOpacity = 0.8,
-                   bringToFront = F),
+                   sendToBack=T),
                  label = sprintf(
                    "<strong>%s</strong><br/> %s %.0f", 
                    nc$comm,
@@ -432,3 +433,4 @@ shinyServer(function(input, output, session) {
   })
   
 })
+

@@ -198,7 +198,7 @@ shinyUI(bootstrapPage(
                                       radioButtons("radioFlu", label = NULL,
                                                    choices = list("Emploi" = "iEmploi",
                                                                   "Population" = "iPopulation",
-                                                                  "Emploi et Population" = "iEmpPop"))
+                                                                  "Flux intra-communaux" = "iEmpPop"))
                              )
                  )
   ),
