@@ -25,12 +25,26 @@ library(plotly)
 library(igraph)
 library(tidyverse)
 
-############ LOAD DATA ############
+############ LOAD DATA ############ 
+
+#shape de la forme S4
 
 shape <- readRDS(file = "data/communes.Rds")
+shape$nomcom <- as.character(shape$nomcom)
+Encoding(shape$nomcom) <- "UTF-8"
+
 shapeAgr <- readRDS(file = "data/communesAggrege.Rds")
+
+#les shapes doivent être de la forme S4 avec en premiere colonne, l'identifiant
+shapeSf <- st_as_sf(shape)
+shapeSf <- shapeSf[,c(3,2,1,4,5,6)]
+
+#Tableau avec pour chaque commune le total des flux sortant, le total des flux entrant, 
+#et le total des flux intra
 poptab <- readRDS(file = "data/poptab.Rds")
 poptabAgr <- readRDS(file = "data/poptabAgr.Rds")
+
+#Tableau avec les origines, destination, mode de transport et flux de naveteurs entre toute les communes 
 tabFlows <- readRDS(file = "data/tabflows.Rds")
 tabFlowsAgr <- readRDS(file = "data/tabflowsAgr.Rds")
 
@@ -42,55 +56,83 @@ tabFlowsNoMode <- readRDS("data/tabflows.Rds") %>%
   group_by(ORI, DES) %>% 
   summarise(FLOW = sum(FLOW))
 
-#les shapes doivent être de la forme S4 avec en premiere colonne, l'identifiant
-shapeSf <- st_as_sf(shape)
-shapeSf <- shapeSf[,c(3,2,1,4,5,6)]
-commsf <- st_as_sf(shape)
-commsf <- commsf[,c(3,2,1,4,5,6)]
-
-vferre <- readRDS(file = "data/vferre.Rds")
-routier <- readRDS(file = "data/routier.Rds")
-coordCom <- readRDS(file = "data/coordcom.Rds")
-station <- readRDS(file = "data/station.Rds")
-
-listPotentials <- readRDS(file = "data/listpotentials.Rds")
-
-mat75056 <- readRDS(file = "data/mat75056.Rds")
-mat <- readRDS(file = "data/mat.Rds")
 id <- "insee"
 
+#couches tiers (voies ferré, réseau routier, gares.)
+vferre <- readRDS(file = "data/vferre.Rds")
+routier <- readRDS(file = "data/routier.Rds")
+station <- readRDS(file = "data/station.Rds")
+
+#Coordonnées X Y des communes
+coordCom <- readRDS(file = "data/coordcom.Rds")
+coordCom$LIBGEO <- paste(coordCom$CODGEO, coordCom$LIBGEO, sep = ' - ')
+
+#matrice des flux
+matflow <- readRDS(file = "data/mat.Rds")
+
+
+#listes des différentes combinaisons possible comportant chacune les données pour l'affichage du 3e onglet :
+#Bassin d'habitation
+listPotentials <- readRDS(file = "data/listpotentials.Rds")
+
+### Making Data for the server
+#Creation of variables specifically
+commData <- mobIndic(tabFlows = tabFlows, id = "insee", shapeSf = shapeSf)
+
+domFlowJob <- nystuen_dacey(tabFlowsAgrNoMode, poptabAgr, idfield = "insee", targetfield  = "TOTDES", threspct = 0, shapeAgr, shapeId = "insee")
+domFlowPop <- nystuen_dacey(tabFlowsAgrNoMode, poptabAgr, idfield = "insee", targetfield = "TOTORI", threspct = 0, shapeAgr, shapeId = "insee")
+domFlowJP <- nystuen_dacey(tabFlowsAgrNoMode, poptabAgr, idfield = "insee", targetfield = "TOTINTRA", threspct = 0, shapeAgr, shapeId = "insee")
 
 ############ LOAD FUNCTION ##########
 
-mobIndic <- function (matrix, shapesf, id){
-  
-  longMatrix <- melt(data = matrix, varnames = c("ORI", "DES"), value.name = "FLOW")
+mobIndic <- function (tabFlows, shapeSf, id){
+  ###FLOW #### 
   #Store Origins to Origins Flow Value into a df name "tabflowOriOri"
-  tabflowOriOri <- longMatrix %>% filter_( "ORI == DES")
-  colnames(tabflowOriOri) <- c("ORI", "DES","OriOriFlow")
+  tabflowOriOri <- tabFlows %>% filter_( "ORI == DES") %>% group_by(ORI,DES) %>%summarise(OriOriFlow = sum(FLOW))
   
   #Store Origins Flow Value into a df name "tabflowOri"
-  tabflowOri <-  longMatrix %>% filter_( "ORI != DES") %>% group_by(ORI) %>% summarise(OriFlow = sum(FLOW))
+  tabflowOri <-  tabFlows %>% filter_( "ORI != DES") %>% group_by(ORI) %>% summarise(OriFlow = sum(FLOW))
   
   #Store Destination Flow Value into a df name "tabflowDes"
-  tabflowDes <-  longMatrix %>% filter_( "ORI != DES") %>% group_by(DES) %>% summarise(DesFlow = sum(FLOW))
+  tabflowDes <-  tabFlows %>% filter_( "ORI != DES") %>% group_by(DES) %>% summarise(DesFlow = sum(FLOW))
   tabflow <- left_join(x = tabflowOriOri, y = tabflowOri, by = c("ORI","ORI"))
   tabflow <- left_join(x = tabflow, y = tabflowDes, by = c("DES","DES"))
   tabflow$DES <- NULL
   colnames(tabflow) <- c("idflow", "OriOriFlow","OriFlow", "DesFlow")
   
+  ### DIST#### 
+  #Store Origins to Origins Flow Value into a df name "tabflowOriOri"
+  tabdistOriOri <- tabFlows %>% filter_( "ORI == DES") %>% group_by(ORI,DES) %>%summarise(OriOriFlow = sum(DISTTOT))
+  
+  #Store Origins Flow Value into a df name "tabflowOri"
+  tabdistOri <-  tabFlows %>% filter_( "ORI != DES") %>% group_by(ORI) %>% summarise(OriFlow = sum(DISTTOT))
+  
+  #Store Destination Flow Value into a df name "tabflowDes"
+  tabdistDes <-  tabFlows %>% filter_( "ORI != DES") %>% group_by(DES) %>% summarise(DesFlow = sum(DISTTOT))
+  tabdist <- left_join(x = tabdistOriOri, y = tabdistOri, by = c("ORI","ORI"))
+  tabdist <- left_join(x = tabdist, y = tabdistDes, by = c("DES","DES"))
+  tabdist$DES <- NULL
+  colnames(tabdist) <- c("idflow", "OriOriDist","OriDist", "DesDist")
+  
+  tabflow <- left_join(x = tabdist, y = tabflow, by = c("idflow","idflow"))
+  
   #Building indicators
+  tabflow[is.na(tabflow)] <- 0
   tabflow$Dependency <- tabflow$OriOriFlow / (tabflow$OriFlow + tabflow$OriOriFlow)
   tabflow$AutoSuff <- tabflow$OriOriFlow / (tabflow$DesFlow + tabflow$OriOriFlow)
   tabflow$Mobility <- (tabflow$DesFlow+tabflow$OriFlow) / (tabflow$OriFlow + tabflow$OriOriFlow)
   tabflow$RelBal <- (tabflow$DesFlow-tabflow$OriFlow) / (tabflow$OriFlow + tabflow$DesFlow)
+  tabflow$meanDist <- tabflow$OriDist/tabflow$OriFlow
+  tabflow$perOri <- (tabflow$OriFlow*100)/sum(tabflow$OriFlow)
+  tabflow$perDes <- (tabflow$DesFlow*100)/sum(tabflow$DesFlow)
+  tabflow$perIntra <- (tabflow$OriOriFlow*100)/sum(tabflow$OriOriFlow)
+  tabflow[is.na(tabflow)] <- 0
   
-  shapesf$idshp <- shapesf[[id]]
-  shapeflow <- merge(x = shapesf,y = tabflow, by.x="idshp", by.y = "idflow")
+  shapeSf$idshp <- shapeSf[[id]]
+  shapeflow <- merge(x = shapeSf,y = tabflow, by.x="idshp", by.y = "idflow")
   
   return(shapeflow)
 }
-
 
 nystuen_dacey <- function(
   tabflows,   # data.frame with commuting flows, long format (origin, destination, flow)
@@ -163,13 +205,13 @@ nystuen_dacey <- function(
   
   #Get geometry for graphTab
   shapeSf <- st_as_sf(shape)
-  shapesfCent <- st_centroid(shapeSf)
+  shapeSfCent <- st_centroid(shapeSf)
   proj4string <- as.character(shape@proj4string)
-  xy <- do.call(rbind, st_geometry(shapesfCent))
-  shapesfCent$lon <- project(xy=xy, proj4string, inv = TRUE)[,1]
-  shapesfCent$lat <- project(xy=xy, proj4string, inv = TRUE)[,2]
+  xy <- do.call(rbind, st_geometry(shapeSfCent))
+  shapeSfCent$lon <- project(xy=xy, proj4string, inv = TRUE)[,1]
+  shapeSfCent$lat <- project(xy=xy, proj4string, inv = TRUE)[,2]
   graphTab <- transform(graphTab, name = as.numeric(name))
-  graphTab <- left_join(graphTab, shapesfCent, by = c("name"= shapeId))
+  graphTab <- left_join(graphTab, shapeSfCent, by = c("name"= shapeId))
   graphTab <- transform(graphTab, name = as.character(name))
   graphTab <- left_join(graphTab, poptab, by = c("name"= "ORI"))
   
@@ -200,7 +242,7 @@ PotentialPalette <- function(ras) {
   return(palCol)
 }
 
-# Create color palette for potentials ----
+# Create contour for potentials ----
 PotentialContour <- function(ras) {
   potCont <- rasterToContourPoly(r = ras, nclass = 15)
   potContGeo <- st_as_sf(spTransform(potCont, CRSobj = CRS("+init=epsg:4326")))
@@ -226,11 +268,25 @@ GetLinks <- function(tabnav, spcom, ref, mod, varsort, oneunit, thres){
     tabSel <- tabSel[order(tabSel[[varsort]], decreasing = TRUE), ]
   }
   nbRows <- ifelse(thres > nrow(tabSel), nrow(tabSel), thres)
-  spLinks <- getLinkLayer(x = commsf, df = tabSel[1:nbRows, c("ORI", "DES")])
+  spLinks <- getLinkLayer(x = shapeSf, df = tabSel[1:nbRows, c("ORI", "DES")])
   print(spLinks)
   spPol <- spcom[spcom$insee %in% spLinks$DES, ]
   topDes <- list(POLYG = spPol, LINES = spLinks)
   return(topDes)
+}
+
+# get city value ----
+city_Value <- function(matflow,spcom,od,city){
+  if(od == "ORI"){
+    tabCityFlow <- matflow[city,]
+  }else{
+    tabCityFlow <- matflow[,city]
+  }  
+  tabCityFlow <- as.data.frame(tabCityFlow)
+  tabCityFlow$ID <- rownames(tabCityFlow)
+  tabCityFlow$ID <- as.numeric(tabCityFlow$ID)
+  spcom <- dplyr::left_join(spcom,tabCityFlow, by = c("insee" ="ID")) 
+  return(spcom)
 }
 
 # ggplot dark theme ----

@@ -6,10 +6,10 @@ shinyUI(bootstrapPage(
   tags$style(HTML("
                   #loading {
                   position: relative;
-                  z-index : 1
+                  z-index : 1;
                   }
                   #Scénarii{
-                  margin: auto.
+                  margin: auto.;
                   }
                   #mapIndic {
                   position: absolute;
@@ -23,14 +23,15 @@ shinyUI(bootstrapPage(
                   #mapfluDom {
                   position: absolute;
                   }
-                  #graphPanel{
-                  display: none
-                  }
                   .panel-title {
-                  text-align: center
+                  text-align: center;
                   }
-                  #graphPanelButton {
-                  text-align: center
+                  #tabPanel {
+                  max-height: 90%;
+                  overflow: auto;
+                  }
+                  .panel-group {
+                    margin-bottom: 0px;
                   }
                   ")),
   
@@ -43,19 +44,19 @@ shinyUI(bootstrapPage(
   
   #Display maps through the panel selection
   conditionalPanel(
-    condition = "input.tabs=='Mobilité'",
+    condition = "input.tabs=='Index'",
     leafletOutput("mapIndic", width="100%", height = "100%") 
   ),
   conditionalPanel(
-    condition = "input.tabs=='Flux'",
+    condition = "input.tabs=='Micro Flux'",
     leafletOutput("mapflu", width="100%", height = "100%") 
   ),
   conditionalPanel(
-    condition = "input.tabs=='Bassin'",
+    condition = "input.tabs=='Structure'",
     leafletOutput("mappot", width="100%", height = "100%") 
   ),
   conditionalPanel(
-    condition = "input.tabs=='FluxDom'",
+    condition = "input.tabs=='Macro Flux'",
     leafletOutput("mapfluDom", width="100%", height = "100%") 
   ),
   
@@ -130,25 +131,30 @@ shinyUI(bootstrapPage(
   ),
   
   #indicators panel
-  absolutePanel( class = "panel panel-default",
+  absolutePanel( id = "tabPanel",
+                 class = "panel panel-default",
                  style = "padding : 10px",
                  top = "2%", 
                  left = "2%",
                  right = "78%",
                  tabsetPanel(id = "tabs", 
                              
-                             ####### Panneau Mobilité ##### 
-                             tabPanel("Mobilité", 
+                             ####### Panneau Index ##### 
+                             tabPanel("Index", 
                                       radioButtons("radioMobi", label = NULL,
                                                    choices = list("Solde Relatif" = "soldeRel",
-                                                                  "Auto-Contention" = "Contention",
+                                                                  "Dépendance" = "Dependance",
                                                                   "Auto-Suffisance" = "Suffisance",
-                                                                  "Mobilité" = "Mobility"
+                                                                  "Mobilité" = "Mobility",
+                                                                  "Distance moyenne" = "meanDist",
+                                                                  "Part des flux à l'origine" = "perOri",
+                                                                  "Part des flux à la destination" = "perDes",
+                                                                  "Part des flux intra" = "perIntra"
                                                    ))
                              ),
                              
-                             ####### Panneau Flux     #####
-                             tabPanel("Flux",
+                             ####### Panneau Micro Flux     #####
+                             tabPanel("Micro Flux",
                                       selectInput("flucom", 
                                                   label = "Choisir une commune",
                                                   choices = sort(coordCom$LIBGEO),
@@ -166,7 +172,7 @@ shinyUI(bootstrapPage(
                              ),
                              
                              ####### Panneau Bassin   #####
-                             tabPanel("Bassin",
+                             tabPanel("Structure",
                                       radioButtons("pottyp", 
                                                    label = "Type de potentiel", 
                                                    choices = c("Origine" = "ori", "Destination" = "des", "Différentiel" = "dif"), 
@@ -194,34 +200,29 @@ shinyUI(bootstrapPage(
                              ),
                              
                              ####### Panneau FluxDom  #####
-                             tabPanel("FluxDom",
+                             tabPanel("Macro Flux",
                                       radioButtons("radioFlu", label = NULL,
                                                    choices = list("Emploi" = "iEmploi",
                                                                   "Population" = "iPopulation",
                                                                   "Flux intra-communaux" = "iEmpPop"))
                              )
                  )
+                             ####### 
   ),
   
+  
+  
   #Graphic panel button display
-  absolutePanel( id = "graphPanelButton",
-                 class = "panel panel-default",
+  absolutePanel( class = "panel panel-default",
                  style = "padding : 10px",
                  top = "2%",
                  left = "78%",
                  right = "2%",
-                 actionButton("button", "Graphiques")          
-  ),
-  
-  #Graphic panel 
-  absolutePanel( id = "graphPanel",
-                 class = "panel panel-default",
-                 style = "padding : 10px",
-                 top = "12%",
-                 left = "78%",
-                 right = "2%",
-                 draggable = F,
-                 width = "20%",
-                 fixed = T,
-                 plotlyOutput("plot1")
-  )))
+                 bsCollapse(id = "collapseExample", open = "Panel 2",
+                            bsCollapsePanel("Graphiques",
+                                            plotlyOutput("plot1")
+                                            )
+                            )
+  )
+
+  ))
