@@ -1,4 +1,13 @@
 shinyServer(function(input, output, session) {
+  ### Making Data for the server
+  #Creation of variables specifically
+  commData <- mobIndic(tabFlows = tabFlows, id = "insee", shapeSf = shapeSf)
+  
+  domFlowJob <- nystuen_dacey(tabFlowsAgrNoMode, poptabAgr, idfield = "insee", targetfield  = "TOTDES", threspct = 0, shapeAgr, shapeId = "insee")
+  domFlowPop <- nystuen_dacey(tabFlowsAgrNoMode, poptabAgr, idfield = "insee", targetfield = "TOTORI", threspct = 0, shapeAgr, shapeId = "insee")
+  domFlowJP <- nystuen_dacey(tabFlowsAgrNoMode, poptabAgr, idfield = "insee", targetfield = "TOTINTRA", threspct = 0, shapeAgr, shapeId = "insee")
+  
+  
   # Graphic Display  ####
   output$plot1 <- renderPlotly({
     plot_ly(as.data.frame(commData), x = ~RelBal, y = ~AutoSuff)

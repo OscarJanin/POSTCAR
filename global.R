@@ -75,14 +75,6 @@ matflow <- readRDS(file = "data/mat.Rds")
 #Bassin d'habitation
 listPotentials <- readRDS(file = "data/listpotentials.Rds")
 
-### Making Data for the server
-#Creation of variables specifically
-commData <- mobIndic(tabFlows = tabFlows, id = "insee", shapeSf = shapeSf)
-
-domFlowJob <- nystuen_dacey(tabFlowsAgrNoMode, poptabAgr, idfield = "insee", targetfield  = "TOTDES", threspct = 0, shapeAgr, shapeId = "insee")
-domFlowPop <- nystuen_dacey(tabFlowsAgrNoMode, poptabAgr, idfield = "insee", targetfield = "TOTORI", threspct = 0, shapeAgr, shapeId = "insee")
-domFlowJP <- nystuen_dacey(tabFlowsAgrNoMode, poptabAgr, idfield = "insee", targetfield = "TOTINTRA", threspct = 0, shapeAgr, shapeId = "insee")
-
 ############ LOAD FUNCTION ##########
 
 mobIndic <- function (tabFlows, shapeSf, id){
