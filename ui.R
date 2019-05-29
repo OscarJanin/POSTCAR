@@ -146,7 +146,6 @@ shinyUI(bootstrapPage(
                                                                   "Dépendance" = "Dependance",
                                                                   "Auto-Suffisance" = "Suffisance",
                                                                   "Mobilité" = "Mobility",
-                                                                  "Distance moyenne" = "meanDist",
                                                                   "Part des flux à l'origine" = "perOri",
                                                                   "Part des flux à la destination" = "perDes",
                                                                   "Part des flux intra" = "perIntra"
