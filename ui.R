@@ -142,13 +142,16 @@ shinyUI(bootstrapPage(
                              ####### Panneau Index ##### 
                              tabPanel("Index", 
                                       radioButtons("radioMobi", label = NULL,
-                                                   choices = list("Solde Relatif" = "soldeRel",
-                                                                  "Dépendance" = "Dependance",
+                                                   choices = list("Emploi" = "emploi",
+                                                                  "Population active" = "popact",
+                                                                  "Solde Relatif" = "soldeRel",
+                                                                  "Auto-Contention" = "Contention",
                                                                   "Auto-Suffisance" = "Suffisance",
+                                                                  "Distance moyenne à l'origine" = "meanDistOri",
+                                                                  "Distance moyenne à destination" = "meanDistDes",
                                                                   "Mobilité" = "Mobility",
                                                                   "Part des flux à l'origine" = "perOri",
-                                                                  "Part des flux à la destination" = "perDes",
-                                                                  "Part des flux intra" = "perIntra"
+                                                                  "Part des flux à la destination" = "perDes"
                                                    ))
                              ),
                              

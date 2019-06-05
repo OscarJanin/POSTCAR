@@ -47,8 +47,8 @@ tabFlowsNoMode <- tabFlows %>%
 
 #Tableau avec pour chaque commune le total des flux sortant, le total des flux entrant, 
 #et le total des flux intra
-poptab <- toyspace::pop_tab(tabflows = tabFlows,idori = "ORI",iddes = "DES", idflow = "FLOW")
-poptabAgr <- toyspace::pop_tab(tabflows = tabFlowsAgr,idori = "ORIAGR",iddes = "DESAGR", idflow = "FLOW")
+poptab <- toyspace::pop_tab(tabflows = tabFlows,idori = "ORI",iddes = "DES", idflow = "FLOW", iddist = "DIST")
+poptabAgr <- toyspace::pop_tab(tabflows = tabFlowsAgr,idori = "ORIAGR",iddes = "DESAGR", idflow = "FLOW", iddist = "DIST")
 
 #couches tiers (voies ferré, réseau routier, gares.)
 vferre <- readRDS(file = "data/vferre.Rds")
@@ -69,14 +69,14 @@ listPotentials <- readRDS(file = "data/listpotentials.Rds")
 
 ############ LOAD FUNCTION ##########
 
-commData <- toyspace::mob_indic(tabflows = tabFlows, idori = "ORI", iddes = "DES", idflow = "FLOW", pol = pol, idpol = "insee")
+commData <- toyspace::mob_indic(tabflows = tabFlows, idori = "ORI", iddes = "DES", idflow = "FLOW", pol = pol, idpol = "insee", iddist = "DIST")
 
 domFlowJob <- toyspace::nystuen_dacey(tabflows = tabFlowsAgr, idori = "ORIAGR", iddes = "DESAGR", idflow = "FLOW",
-                                      weight = "destination", threspct = 1, pol = polAgr, idpol = "IDAGR")
+                                      weight = "destination", threspct = 1, pol = polAgr, idpol = "IDAGR", iddist = "DIST")
 domFlowPop <- toyspace::nystuen_dacey(tabflows = tabFlowsAgr, idori = "ORIAGR", iddes = "DESAGR", idflow = "FLOW",
-                                      weight = "origin", threspct = 1, pol = polAgr, idpol = "IDAGR")
+                                      weight = "origin", threspct = 1, pol = polAgr, idpol = "IDAGR", iddist = "DIST")
 domFlowJP <- toyspace::nystuen_dacey(tabflows = tabFlowsAgr, idori = "ORIAGR", iddes = "DESAGR", idflow = "FLOW",
-                                     weight = "internal", threspct = 1, pol = polAgr, idpol = "IDAGR")
+                                     weight = "internal", threspct = 1, pol = polAgr, idpol = "IDAGR", iddist = "DIST")
 
 ##############################
 #####      Global        #####
@@ -110,11 +110,10 @@ PotentialContour <- function(ras) {
 }
 
 # get top links ----
-GetLinks <- function(tabnav, spcom, ref, mod, varsort, oneunit, thres){
+GetLinks <- function(tabnav, ref, mod, varsort, oneunit, thres){
   refLib <- paste0(ref, "LIB")
   oriDes <- paste0(c("ORI", "DES"), "LIB")
   invRef <- oriDes[oriDes != refLib]
-  print(mod)
   if(mod == "TOUT"){
     tabSel <- tabnav %>% 
       group_by(ORI, DES) %>% 
@@ -129,9 +128,7 @@ GetLinks <- function(tabnav, spcom, ref, mod, varsort, oneunit, thres){
   }
   nbRows <- ifelse(thres > nrow(tabSel), nrow(tabSel), thres)
   spLinks <- getLinkLayer(x = pol, df = tabSel[1:nbRows, c("ORI", "DES")])
-  print(spLinks)
-  spPol <- spcom[spcom$insee %in% spLinks$DES, ]
-  topDes <- list(POLYG = spPol, LINES = spLinks)
+  topDes <- spLinks
   return(topDes)
 }
 pol$insee

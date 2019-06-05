@@ -6,41 +6,103 @@ shinyServer(function(input, output, session) {
   })
   
   
+  
   # Get reactive value based on radiobutton (for 1st panel "Indicators")  ####
-  v <- reactiveValues(data = commData$RelBal)
-  n <- reactiveValues(nom = "soldeRel")
+  v <- reactiveValues(data = commData$TOTDES)
+  n <- reactiveValues(nom = "Emploi : ")
+  u <- reactiveValues(unit = "")
+  c <- reactiveValues(color = "PuOr")
+  b <- reactiveValues(breaks = sort(append(0,getBreaks(commData$RelBal,nclass = 6,method = "fisher-jenks"))))
+  l <- reactiveValues(layer = "taux")
+  p <- reactiveValues(polygons = "")
   
   observeEvent(input$radioMobi,{
+    if(input$radioMobi=="emploi"){
+      v$data <- commData$TOTDES
+      n$nom <- "Emploi : "
+      u$unit <- ""
+      c$color <- "PuOr"
+      b$breaks <- sort(append(0,getBreaks(commData$RelBal,nclass = 6,method = "fisher-jenks")))
+      l$layer <- "taux"
+      p$polygons <- ""}
+    if(input$radioMobi=="popact"){
+      v$data <- commData$TOTORI
+      n$nom <- "Population active : "
+      u$unit <- ""
+      c$color <- "PuOr"
+      b$breaks <- sort(append(0,getBreaks(commData$RelBal,nclass = 6,method = "fisher-jenks")))
+      l$layer <- "taux"
+      p$polygons <- ""}
     if(input$radioMobi=="soldeRel"){
       v$data <- commData$RelBal
-      n$nom <- "Solde relatif : "}
-    if(input$radioMobi=="Dependance"){
-      v$data <- commData$Dependency
-      n$nom <- "Dépendance : "}
+      n$nom <- "Solde relatif : "
+      u$unit <- ""
+      c$color <- "PuOr"
+      b$breaks <- sort(append(0,getBreaks(commData$RelBal,nclass = 6,method = "fisher-jenks")))
+      l$layer <- "stock"
+      p$polygons <- "communes"}
+    if(input$radioMobi=="Contention"){
+      v$data <- commData$Contention
+      n$nom <- "Auto-Contention : "
+      u$unit <- ""
+      c$color <- "Purples"
+      b$breaks <- getBreaks(commData$Contention,nclass = 6,method = "fisher-jenks")
+      l$layer <- "stock"
+      p$polygons <- "communes"}
     if(input$radioMobi=="Suffisance"){
       v$data <- commData$AutoSuff
-      n$nom <- "Auto-Suffisance : "}
+      n$nom <- "Auto-Suffisance : "
+      u$unit <- ""
+      c$color <- "Purples"
+      b$breaks <- getBreaks(commData$AutoSuff,nclass = 6,method = "fisher-jenks")
+      l$layer <- "stock"
+      p$polygons <- "communes"}
     if(input$radioMobi=="Mobility"){
       v$data <- commData$Mobility
-      n$nom <- "Mobilité : "}
-    if(input$radioMobi=="meanDist"){
-      v$data <- commData$meanDist
-      n$nom <- "Distance moyenne : "}
+      n$nom <- "Mobilité : "
+      u$unit <- ""
+      c$color <- "Purples"
+      b$breaks <- getBreaks( commData$Mobility,nclass = 6,method = "fisher-jenks")
+      l$layer <- "stock"
+      p$polygons <- "communes"}
+    if(input$radioMobi=="meanDistOri"){
+      v$data <- commData$MEANDISTORI
+      n$nom <- "Distance moyenne à l'origine : "
+      u$unit <- "km"
+      c$color <- "Purples"
+      b$breaks <- getBreaks(commData$MEANDISTORI,nclass = 6,method = "fisher-jenks")
+      l$layer <- "stock"
+      p$polygons <- "communes"}
+    if(input$radioMobi=="meanDistDes"){
+      v$data <- commData$MEANDISTDES
+      n$nom <- "Distance moyenne à destination : "
+      u$unit <- "km"
+      c$color <- "Purples"
+      b$breaks <- getBreaks(commData$MEANDISTDES,nclass = 6,method = "fisher-jenks")
+      l$layer <- "stock"
+      p$polygons <- "communes"}
     if(input$radioMobi=="perOri"){
       v$data <- commData$perOri
-      n$nom <- "Part des flux à l'origine : "}
+      n$nom <- "Part des flux à l'origine : "
+      u$unit <- "%"
+      c$color <- "Purples"
+      b$breaks <- getBreaks( commData$perOri,nclass = 6,method = "fisher-jenks")
+      l$layer <- "stock"
+      p$polygons <- "communes"}
     if(input$radioMobi=="perDes"){
       v$data <- commData$perDes
-      n$nom <- "Part des flux à la destination : "}
-    if(input$radioMobi=="perIntra"){
-      v$data <- commData$perIntra
-      n$nom <- "Part des flux intra : "}
+      n$nom <- "Part des flux à la destination : "
+      u$unit <- "%"
+      c$color <- "Purples"
+      b$breaks <- getBreaks(commData$perDes,nclass = 6,method = "fisher-jenks")
+      l$layer <- "stock"
+      p$polygons <- "communes"}
   })
   
   
   # Get reactive value based on radiobutton (for 4th panel "flow")  ####
   f <- reactiveValues(dataflu = domFlowJob[[2]])
-  r <- reactiveValues(rayon = (sqrt(domFlowJob[[1]][["TOTDES"]])/pi)*20)
+  r <- reactiveValues(rayon = (sqrt(domFlowJob[[1]][["TOTDES"]])/pi)*17)
   c <- reactiveValues(cercle = domFlowJob[[1]])
   vc <- reactiveValues(valCercle = domFlowJob[[1]][["TOTDES"]])
   nf <- reactiveValues(nom = "Emploi : ")
@@ -49,21 +111,21 @@ shinyServer(function(input, output, session) {
   observeEvent(input$radioFlu,{
     if(input$radioFlu=="iEmploi"){
       f$dataflu <- domFlowJob[[2]]
-      r$rayon <- (sqrt(domFlowJob[[1]][["TOTDES"]])/pi)*20
+      r$rayon <- (sqrt(domFlowJob[[1]][["TOTDES"]])/pi)*17
       c$cercle <- domFlowJob[[1]]
       vc$valCercle <- domFlowJob[[1]][["TOTDES"]]
       nf$nom <- "Emploi : "
       nc$comm <- domFlowJob[[1]][["nomcom"]]}
     if(input$radioFlu=="iPopulation"){
       f$dataflu <- domFlowPop[[2]]
-      r$rayon <- (sqrt(domFlowPop[[1]][["TOTORI"]])/pi)*20
+      r$rayon <- (sqrt(domFlowPop[[1]][["TOTORI"]])/pi)*17
       c$cercle <- domFlowPop[[1]]
       vc$valCercle <- domFlowPop[[1]][["TOTORI"]]
       nf$nom <- "Population : "
       nc$comm <- domFlowPop[[1]][["nomcom"]]}
     if(input$radioFlu=="iEmpPop"){
       f$dataflu <- domFlowJP[[2]]
-      r$rayon <- (sqrt(domFlowJP[[1]][["TOTINTRA"]])/pi)*20
+      r$rayon <- (sqrt(domFlowJP[[1]][["TOTINTRA"]])/pi)*17
       c$cercle <- domFlowJP[[1]]
       vc$valCercle <- domFlowJP[[1]][["TOTINTRA"]]
       nf$nom <- "Flux intra-communaux : "
@@ -77,7 +139,8 @@ shinyServer(function(input, output, session) {
       addMapPane("réseau_routier", zIndex = 420) %>%  # Level 2
       addMapPane("voie_ferré", zIndex = 430) %>%  # Level 3
       addMapPane("station", zIndex = 440) %>%  # Level 4
-      addProviderTiles(provider = "Esri.WorldGrayCanvas",
+      addMapPane("cercles", zIndex = 450) %>%  # Level 5
+      addProviderTiles(provider = "CartoDB.Positron",
                        options = providerTileOptions(minZoom = 8, maxZoom = 12)) %>%
       addLayersControl(
         position = "bottomright",
@@ -88,13 +151,18 @@ shinyServer(function(input, output, session) {
       setMaxBounds(-0.05, 46.62, 5.05, 50.73) %>% 
       hideGroup("Réseau routier principal") %>% 
       hideGroup("Réseau ferré") %>% 
-      hideGroup("Stations ferroviaires")
+      hideGroup("Stations ferroviaires")%>%
+      hideGroup(l$layer) %>%
+      hideGroup(p$polygons)
   })
+  
   
   observe({
     shinyjs::showElement(id = 'loading')
-    leafletProxy("mapIndic", data =commData) %>%
+    leafletProxy("mapIndic", data = commData) %>%
       clearShapes() %>%
+      addPolygons(data = st_transform(pol, crs = 4326), stroke = TRUE, weight = 0.5, opacity = 0.5, color = "grey", fill = TRUE,
+                  fillColor = "grey", fillOpacity = 0, group = "communes") %>% 
       addPolylines(data = st_transform(routier, crs = 4326), 
                    color = "grey",
                    opacity = 0.6,
@@ -117,13 +185,39 @@ shinyServer(function(input, output, session) {
                        color = "grey",
                        fillOpacity = 0.8,
                        group = "Stations ferroviaires",
-                       options = pathOptions(pane = "station")) %>% 
-      
+                       options = pathOptions(pane = "station")) %>%
+      addCircles(
+                 lng = commData[["lon"]],
+                 lat = commData[["lat"]],
+                 radius = (sqrt(v$data)/pi)*17,
+                 color = "purple",
+                 stroke = F,
+                 fillOpacity = 0.6,
+                 highlight = highlightOptions(
+                   weight = 5,
+                   color = "white",
+                   opacity = 1,
+                   fillOpacity = 0.8,
+                   bringToFront = F),
+                 label = sprintf(
+                   "<strong>%s</strong><br/> %s %.0f",
+                   commData$nomcom,
+                   n$nom,
+                   v$data
+                 )%>% lapply(htmltools::HTML),
+                 labelOptions = labelOptions(
+                   style = list("font-weight" = "normal",
+                                padding = "3px 8px"),
+                   textsize = "15px",
+                   direction = "auto"),
+                 options = pathOptions(pane = "cercles"),
+                 group = "stock"
+                 )%>%
       addPolygons(
-        fillColor = ~colorBin(palette = "Purples",
-                              bins = getBreaks(v$data, nclass = 6,method = "fisher-jenks"),
+        fillColor = ~colorBin(palette = c$color,
+                              bins = b$breaks,
                               domain = v$data)(v$data),
-        weight = 0.7, 
+        weight = 0.7,
         opacity = 0.5,
         color = "grey",
         fillOpacity = 0.7,
@@ -134,16 +228,18 @@ shinyServer(function(input, output, session) {
           fillOpacity = 1,
           bringToFront = TRUE),
         label = sprintf(
-          "<strong>%s</strong><br/> %s %.2f",
-          commData$nomcom, 
+          "<strong>%s</strong><br/> %s %.2f %s",
+          commData$nomcom,
           n$nom,
-          v$data
+          v$data,
+          u$unit
         )%>% lapply(htmltools::HTML),
         labelOptions = labelOptions(
           style = list("font-weight" = "normal", padding = "3px 8px"),
           textsize = "15px",
           direction = "auto"),
-        options = pathOptions(pane = "réseau_routier")
+        options = pathOptions(pane = "réseau_routier"),
+        group = "taux"
       )
     shinyjs::hideElement(id = 'loading')
   })
@@ -151,13 +247,14 @@ shinyServer(function(input, output, session) {
   observe({
     proxy <- leafletProxy("mapIndic", data =commData)
     proxy %>% clearControls()
-    proxy %>% addLegend(pal = colorBin(palette = "Purples", 
-                                       bins = getBreaks(v$data,nclass = 6,method = "fisher-jenks"),
+    proxy %>% addLegend(pal = colorBin(palette = c$color, 
+                                       bins = b$breaks,
                                        domain = v$data,pretty = TRUE),
                         values = ~v$data, opacity = 0.7,
                         title = NULL, position = "bottomright"
     )
   })
+  
   
   # Flow map Display ####
   output$mapflu <- renderLeaflet({
@@ -166,9 +263,9 @@ shinyServer(function(input, output, session) {
       addMapPane("communes", zIndex = 420) %>%          # Level 2
       addMapPane("réseau_routier", zIndex = 430) %>%    # Level 3
       addMapPane("voie_ferré", zIndex = 440) %>%        # Level 4
-      addMapPane("station", zIndex = 460) %>%            # Level 6
+      addMapPane("station", zIndex = 460) %>%           # Level 6
       addMapPane("lignes", zIndex = 470) %>%           # Level 7
-      addProviderTiles(provider = "Esri.WorldGrayCanvas",
+      addProviderTiles(provider = "CartoDB.Positron",
                        options = providerTileOptions(minZoom = 8, maxZoom = 12)) %>%
       addLayersControl(
         position = "bottomright",
@@ -184,7 +281,6 @@ shinyServer(function(input, output, session) {
   
   observe({
     shinyjs::showElement(id = 'loading')
-    
     topDes <- GetTopLinks()
     cityVal <- Get_CityValue()
     leafletProxy("mapflu", data = cityVal) %>%
@@ -203,12 +299,10 @@ shinyServer(function(input, output, session) {
                        fillOpacity = 0.8,
                        group = "Stations ferroviaires",
                        options = pathOptions(pane = "station")) %>%
-      addPolygons(data = topDes$POLYG, stroke = TRUE, weight = 2, color = "black", highlight = highlightOptions(  weight = 3, color = "grey",
-                                                                                                                  opacity = 0.7, bringToFront = TRUE), fill = F, options = pathOptions(pane = "comm")) %>%
-      addPolylines(data = topDes$LINES, color = "Purple", opacity = 0.8, weight = 1.5, stroke = TRUE, options = pathOptions(pane = "lignes")) %>% 
+      addPolylines(data = topDes, color = "black", opacity = 0.8, weight = 1.5, stroke = TRUE, options = pathOptions(pane = "lignes")) %>%
       addPolygons(
         fillColor = ~colorBin(palette = "Purples",
-                              bins = append(0.001,getBreaks(cityVal$tabCityFlow, nclass = 6,method = "fisher-jenks")),
+                              bins = round(getBreaks(cityVal$tabCityFlow, nclass = 6,method = "fisher-jenks")),
                               domain = cityVal$tabCityFlow)(cityVal$tabCityFlow),
         weight = 0.7, 
         opacity = 0.5,
@@ -221,7 +315,7 @@ shinyServer(function(input, output, session) {
           fillOpacity = 1,
           bringToFront = TRUE),
         label = sprintf(
-          "<strong>%s</strong><br/> %.2f",
+          "<strong>%s</strong><br/> %.0f",
           cityVal$nomcom,
           cityVal$tabCityFlow
         )%>% lapply(htmltools::HTML),
@@ -239,7 +333,7 @@ shinyServer(function(input, output, session) {
     proxy <- leafletProxy("mapflu", data =cityVal)
     proxy %>% clearControls()
     proxy %>% addLegend(pal = colorBin(palette = "Purples", 
-                                       bins = append(0.001,getBreaks(cityVal$tabCityFlow, nclass = 6,method = "fisher-jenks")),
+                                       bins = round(getBreaks(cityVal$tabCityFlow, nclass = 6,method = "fisher-jenks")),
                                        domain = cityVal$tabCityFlow,pretty = TRUE),
                         values = ~cityVal$tabCityFlow, opacity = 0.7,
                         title = NULL, position = "bottomright"
@@ -256,7 +350,7 @@ shinyServer(function(input, output, session) {
       addMapPane("réseau_routier", zIndex = 430) %>%    # Level 3
       addMapPane("voie_ferré", zIndex = 440) %>%        # Level 4
       addMapPane("station", zIndex = 450) %>% 
-      addProviderTiles(provider = "Esri.WorldGrayCanvas",
+      addProviderTiles(provider = "CartoDB.Positron",
                        options = providerTileOptions(minZoom = 8, maxZoom = 12)) %>%
       addLayersControl(
         position = "bottomright",
@@ -373,7 +467,7 @@ shinyServer(function(input, output, session) {
       addMapPane("flux", zIndex = 460) %>%              # Level 6
       addMapPane("cercles", zIndex = 470) %>%           # Level 7
       
-      addProviderTiles(provider = "Esri.WorldGrayCanvas",
+      addProviderTiles(provider = "CartoDB.Positron",
                        options = providerTileOptions(minZoom = 8, maxZoom = 12)) %>%
       addLayersControl(
         position = "bottomright",
@@ -464,7 +558,7 @@ shinyServer(function(input, output, session) {
   
   GetTopLinks <- reactive({
     req(input$fluref, input$fluvar, input$flucom, input$fluthr)
-    topLinks <- GetLinks(tabnav = tabFlows, spcom = pol, ref = input$fluref, mod = input$flumod, varsort = input$fluvar, oneunit = substring(input$flucom, 9), thres = input$fluthr)
+    topLinks <- GetLinks(tabnav = tabFlows, ref = input$fluref, mod = input$flumod, varsort = input$fluvar, oneunit = substring(input$flucom, 9), thres = input$fluthr)
     return(topLinks)
   })
   
