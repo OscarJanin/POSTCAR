@@ -652,7 +652,7 @@ shinyServer(function(input, output, session) {
   
   Get_CityValue <- reactive({
     req(input$fluref, input$flucom, input$fluvar,input$flumod)
-    cityValue <- city_Value(tabflows = tabFlows, matDist = matDist, pol = pol,idpol = idpol, var = input$fluvar, od = input$fluref, mod = input$flumod, city = substr(input$flucom, 1, 5))
+    cityValue <- city_Value(tabflows = tabFlows, matDist = matDist, pol = pol,idpol = "insee", var = input$fluvar, od = input$fluref, mod = input$flumod, city = substr(input$flucom, 1, 5))
     return(cityValue)
   })
 
