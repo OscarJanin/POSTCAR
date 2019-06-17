@@ -4,6 +4,9 @@ shinyUI(bootstrapPage(
   tags$style(type = "text/css", "html, body {width:100%;height:100%}"),
   
   tags$style(HTML("
+                  body {
+                    font-family:'Helvetica';
+                  }
                   #loading {
                   position: relative;
                   z-index : 1;
@@ -33,6 +36,21 @@ shinyUI(bootstrapPage(
                   .panel-group {
                     margin-bottom: 0px;
                   }
+                  .leaflet .legend i{
+                    border-radius: 50%;
+                    width: 10px;
+                    height: 10px;
+                    margin-bottom: 10px;
+                  }
+                  #tabPanel{
+                    font-weight: bold;
+                  }
+                  .panel-title{
+                    font-weight: bold;
+                  }
+                  .nav-tabs > li:hover {
+                   text-decoration: underline;
+                  }
                   ")),
   
   # Loading wheel
@@ -44,7 +62,7 @@ shinyUI(bootstrapPage(
   
   #Display maps through the panel selection
   conditionalPanel(
-    condition = "input.tabs=='Index'",
+    condition = "input.tabs=='Indices'",
     leafletOutput("mapIndic", width="100%", height = "100%") 
   ),
   conditionalPanel(
@@ -126,6 +144,7 @@ shinyUI(bootstrapPage(
                                                         selected = "ACT",
                                                         inline = T, width = "100%"
                                            )
+                                           
                            )
                 )
   ),
@@ -139,8 +158,8 @@ shinyUI(bootstrapPage(
                  right = "78%",
                  tabsetPanel(id = "tabs", 
                              
-                             ####### Panneau Index ##### 
-                             tabPanel("Index", 
+                             ####### Panneau Indice ##### 
+                             tabPanel("Indices", 
                                       radioButtons("radioMobi", label = NULL,
                                                    choices = list("Emploi" = "emploi",
                                                                   "Population active" = "popact",
@@ -152,7 +171,8 @@ shinyUI(bootstrapPage(
                                                                   "Mobilité" = "Mobility",
                                                                   "Part des flux à l'origine" = "perOri",
                                                                   "Part des flux à la destination" = "perDes"
-                                                   ))
+                                                   )),
+                                      actionButton("index_descr", "Description")
                              ),
                              
                              ####### Panneau Micro Flux     #####
@@ -165,12 +185,7 @@ shinyUI(bootstrapPage(
                                       radioButtons("flumod", label = "Mode de transport", choices = c("Tous modes" = "TOUT", "Transport en commun" = "TC", "Voiture" = "VP"), selected = "TOUT"),
                                       radioButtons("fluvar", label = "Quantité", choices = c("Nombre d'individus" = "FLOW", "Cumul de distance" = "DISTTOT"), selected = "FLOW"),
                                       sliderInput("fluthr", label = "Top", min = 2, max = 100, step = 1, value = 3),
-                                      tags$br(),
-                                      actionButton("vis3_descr", "Description"),
-                                      tags$br(),
-                                      actionButton("vis3_exemp", "Clés de lecture"),
-                                      tags$br(),
-                                      actionButton("vis3_donne", "Détails techniques")
+                                      actionButton("flux_descr", "Description")
                              ),
                              
                              ####### Panneau Bassin   #####
@@ -193,12 +208,7 @@ shinyUI(bootstrapPage(
                                                                "Automobiliste" = "vp", 
                                                                "Transporté collectivement" = "tc"),
                                                    selected = "tout"),
-                                      tags$br(),
-                                      actionButton("vis4_descr", "Description"),
-                                      tags$br(),
-                                      actionButton("vis4_exemp", "Clés de lecture"),
-                                      tags$br(),
-                                      actionButton("vis4_donne", "Détails techniques")
+                                      actionButton("pool_descr", "Description")
                              ),
                              
                              ####### Panneau FluxDom  #####
@@ -206,25 +216,33 @@ shinyUI(bootstrapPage(
                                       radioButtons("radioFlu", label = NULL,
                                                    choices = list("Emploi" = "iEmploi",
                                                                   "Population" = "iPopulation",
-                                                                  "Flux intra-communaux" = "iEmpPop"))
+                                                                  "Flux intra-communaux" = "iEmpPop",
+                                                                  "Flux intégrés" = "integrated",
+                                                                  "Flux convergent" = "convergent",
+                                                                  "Flux divergent" = "divergent"
+                                                   )),
+                                      actionButton("fludom_descr", "Description")
                              )
+                             
                  )
                              ####### 
-  ),
-  
-  
-  
-  #Graphic panel button display
-  absolutePanel( class = "panel panel-default",
-                 style = "padding : 10px",
-                 top = "2%",
-                 left = "78%",
-                 right = "2%",
-                 bsCollapse(id = "collapseExample", open = "Panel 2",
-                            bsCollapsePanel("Graphiques",
-                                            plotlyOutput("plot1")
-                                            )
-                            )
   )
+  
+  # ,
+  # 
+  # 
+  # 
+  #Graphic panel button display
+  # absolutePanel( class = "panel panel-default",
+  #                style = "padding : 10px",
+  #                top = "2%",
+  #                left = "78%",
+  #                right = "2%",
+  #                bsCollapse(id = "collapseExample", open = "Panel 2",
+  #                           bsCollapsePanel("Graphiques",
+  #                                           plotlyOutput("plot1")
+  #                                           )
+  #                           )
+  # )
 
   ))

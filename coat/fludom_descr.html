@@ -1,0 +1,28 @@
+<h4><strong>Description</strong></h4>
+L'analyse des <strong> Macro Flux </strong> permet de visualiser l'ensemble des flux les plus importants. 
+Deux méthodes de représentation sont utilisées : les flux dominants, qui représentent le flux le plus important 
+de chaque ville et les hierarchise, et les structures spatiales de mobilité qui sépare les flux en quatre catégories 
+dont 3 sont représentés ici : intégrés, convergent et divergent.
+<h4><strong>Clé de lecture</strong></h4>
+<h5><strong>Flux dominants</strong></h5>
+Cette méthode proposé par Nystuen et Dacey (1961), considère qu'un lieu "I" sera dominé par un lieu "J" si deux conditions
+ sont remplies : le flux le plus important depuis "I" est émis vers "J", <b>ET</b> la somme des flux reçus par "J" est
+ plus grande que la somme des flux reçus par "I". Cette méthode crée ce qui est appelé en théorie des graphe, une forêt 
+ (Un ensemble d'arbres (graphique acyclique)) avec trois types de noeuds : dominant, dominés et intermédiaire.
+<ul>
+<li><b>Emploi</b> permet d'observer les flux dominants basé sur les flux entrants</li>
+<li><b>Population</b> permet d'observer les flux dominants basé sur les flux sortants</li>
+<li><b>Flux intra-communaux</b> permet d'observer les flux dominants basé sur les flux interieurs</li>
+</ul>
+<h5><strong>Structure spatiale de mobilité</strong></h5>
+Cette méthode proposé par Thomas Louail (2015) extrait dans un premier temps les lieux résidentiels et de travail avec une forte densité (hotspot) puis sépare les hotspots des non-hotspots (appelés lieux aléatoires). Ensuite, on divise les flux en quatre selon le type de lieu vers lesquels ils se dirigent. Trois sur les quatre types de flux sont ici représentés.
+<ul>
+<p><a href="https://www.nature.com/articles/ncomms7007"><img style="margin 10px; float: right; border-radius: 5px; background-color: white; padding: 10px;" src="ICDR.jpg" alt="ICDR" height="250em"/></a></p>
+<li><b>Flux intégrés</b> représentent les flux qui vont depuis les hotspots résidentiels vers les hotspots de travail</li>
+<li><b>Flux convergent</b> représentent les flux qui vont depuis les lieux résidentiels aléatoires vers les hotspots de travail</li>
+<li><b>Flux divergent</b> représentent les flux qui vont depuis les hotspots résidentiels vers les lieux de travail aléatoires</li>
+</ul>
+<h4><strong>Détails technique</strong></h4>
+<ul>
+<li>Les données utilisées sont les navettes domicile-travail du Recensement de la population 2012 (Insee) avec sélection des déplacements ayant leur origine et leur destination en Île-de-France.</li>
+</ul>

@@ -1,0 +1,19 @@
+<h4><strong>Description</strong></h4>
+L'analyse de la <strong>Structure</strong> met en avant les déséquilibres entre bassins d'emplois et bassins de main 
+d'oeuvre. Chaque déplacement domicile-travail est défini par une origine (commune de résidence de l'actif) 
+et une destination (commune de travail). Considérant qu'un actif est prêt à parcourir 5 km pour atteindre un emploi 
+(plus de précisions ci-dessous), en chaque point du territoire sont comptabilisés dans une fenêtre de 5 km le nombre 
+d'actifs (bassin à l'origine ou bassin de main d'oeuvre) et le nombre d'emplois (bassin à destination ou bassin d'emplois).
+<h4><strong>Clé de lecture</strong></h4>
+<ul>
+<li>Le bassin à l'origine, ou bassin de main d'oeuvre, est donc le nombre d'actifs disponibles dans une fenêtre de 5 km. Au centre de Paris le bassin de main d'oeuvre est d'environ 800~000 actifs, en grande couronne ce nombre tombe à quelques dizaines.</li>
+<li>Le bassin à destination, ou bassin d'emploi, est le nombre d'emplois disponibles dans une fenêtre de 5 km. Au centre de Paris le bassin d'emplois est d'environ 1,2 million d'emplois, en grande couronne ce nombre tombe à quelques dizaines.</li>
+<li>Le différentiel soustrait le bassin d'emploi au bassin d'actif. Les zones apparaissant en rouge sont déficitaires en actifs : il faut importer des actifs pour y remplir les emplois. Les zones apparaissant en bleu sont déficitaires en emplois : il faut que les actifs se déplacent pour aller chercher des emplois ailleurs.</li>
+<li>Toutes les analyses (bassin de main d'oeuvre, bassin d'emploi, différentiel) peuvent être déclinées selon des catégories de population : par sexe, par catégorie socio-professionnelle, par mode de transport principal.</li>
+</ul>
+<h4><strong>Détails technique</strong></h4>
+<ul>
+<li>Les données utilisées sont les navettes domicile-travail du Recensement de la population 2012 (Insee) avec sélection des déplacements ayant leur origine et leur destination en Île-de-France.</li>
+<li>Les stocks d'actifs et d'emplois en tout point sont estimés par un modèle d'accessibilité gravitaire. Pour un point donné on dénombre le nombre d'emplois (ou d'actifs) accessibles dans un rayon de 5 km en pondérant cette accessibilité par la distance. Il y a ainsi un gradient d'accessibilité : accessibilité totale de l'emploi lorsqu'il se situe au lieu de résidence, puis qui diminue lorsque la distance augmente. Les emplois situés au-delà de 5 km (distance médiane des déplacements domicile-travail en Île-de-France) continuent d'être accessibles mais avec un poids faible.</li>
+</ul>
+
