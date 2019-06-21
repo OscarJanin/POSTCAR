@@ -51,6 +51,15 @@ shinyUI(bootstrapPage(
                   .nav-tabs > li:hover {
                    text-decoration: underline;
                   }
+                  #Filtre{
+                   text-align: center;
+                  }
+                  .panel{
+                    box-shadow: 2px 2px 4px rgba(0,0,0,0.5);
+                  }
+                  #collapseExample{
+                    box-shadow: 0px 0px 0px rgba(0,0,0,0);
+                  }
                   ")),
   
   # Loading wheel
@@ -63,19 +72,82 @@ shinyUI(bootstrapPage(
   #Display maps through the panel selection
   conditionalPanel(
     condition = "input.tabs=='Indices'",
-    leafletOutput("mapIndic", width="100%", height = "100%") 
+    leafletOutput("mapIndic", width="100%", height = "100%") ,
+    absolutePanel(bottom = "2%",
+                  right = "25%",
+                  left = "25%",
+                  class = "panel panel-default",
+                  style = "padding : 10px",
+                  radioButtons("FiltreIndices",
+                               label = NULL,
+                               choices = list("Tout" = "Tout",
+                                              "Agriculteur" = "Agriculteurs exploitants",
+                                              "Artisan-commerçant" = "Artisans, commerçants et chefs d'entreprise",
+                                              "Prof. supérieure" = "Cadres et professions intellectuelles supérieures",
+                                              "Prof. intermédiaire" = "Professions Intermédiaires",
+                                              "Employé" = "Employés",
+                                              "Ouvrier" = "Ouvriers",
+                                              "Automobiliste" = "VP",
+                                              "Transporté collectivement" = "TC",
+                                              "Travaille à domicile" = "DOMICILE",
+                                              "Usagers de mode doux" = "NM"),
+                               selected = "Tout",
+                               inline = T)
+    )
   ),
   conditionalPanel(
-    condition = "input.tabs=='Micro Flux'",
-    leafletOutput("mapflu", width="100%", height = "100%") 
+    condition = "input.tabs=='Flux'",
+    leafletOutput("mapflu", width="100%", height = "100%"),
+    absolutePanel(bottom = "2%",
+                  right = "25%",
+                  left = "25%",
+                  class = "panel panel-default",
+                  style = "padding : 10px",
+                  radioButtons("FiltreFlux",
+                               label = NULL,
+                               choices = list("Tout" = "Tout",
+                                              "Agriculteur" = "Agriculteurs exploitants",
+                                              "Artisan-commerçant" = "Artisans, commerçants et chefs d'entreprise",
+                                              "Prof. supérieure" = "Cadres et professions intellectuelles supérieures",
+                                              "Prof. intermédiaire" = "Professions Intermédiaires",
+                                              "Employé" = "Employés",
+                                              "Ouvrier" = "Ouvriers",
+                                              "Automobiliste" = "VP",
+                                              "Transporté collectivement" = "TC",
+                                              "Travaille à domicile" = "DOMICILE",
+                                              "Usagers de mode doux" = "NM"),
+                               selected = "Tout",
+                               inline = T)
+    )
   ),
   conditionalPanel(
-    condition = "input.tabs=='Structure'",
+    condition = "input.tabs=='Bassin'",
     leafletOutput("mappot", width="100%", height = "100%") 
   ),
   conditionalPanel(
-    condition = "input.tabs=='Macro Flux'",
-    leafletOutput("mapfluDom", width="100%", height = "100%") 
+    condition = "input.tabs=='Structure'",
+    leafletOutput("mapfluDom", width="100%", height = "100%"),
+    absolutePanel(bottom = "2%",
+                  right = "25%",
+                  left = "25%",
+                  class = "panel panel-default",
+                  style = "padding : 10px",
+                  radioButtons("FiltreStructure",
+                               label = NULL,
+                               choices = list("Tout" = "Tout",
+                                              "Agriculteur" = "Agriculteurs exploitants",
+                                              "Artisan-commerçant" = "Artisans, commerçants et chefs d'entreprise",
+                                              "Prof. supérieure" = "Cadres et professions intellectuelles supérieures",
+                                              "Prof. intermédiaire" = "Professions Intermédiaires",
+                                              "Employé" = "Employés",
+                                              "Ouvrier" = "Ouvriers",
+                                              "Automobiliste" = "VP",
+                                              "Transporté collectivement" = "TC",
+                                              "Travaille à domicile" = "DOMICILE",
+                                              "Usagers de mode doux" = "NM"),
+                               selected = "Tout",
+                               inline = T)
+    )
   ),
   
   #Scenarios panel
@@ -168,28 +240,25 @@ shinyUI(bootstrapPage(
                                                                   "Auto-Suffisance" = "Suffisance",
                                                                   "Distance moyenne à l'origine" = "meanDistOri",
                                                                   "Distance moyenne à destination" = "meanDistDes",
-                                                                  "Mobilité" = "Mobility",
                                                                   "Part des flux à l'origine" = "perOri",
                                                                   "Part des flux à la destination" = "perDes"
                                                    )),
                                       actionButton("index_descr", "Description")
                              ),
-                             
                              ####### Panneau Micro Flux     #####
-                             tabPanel("Micro Flux",
+                             tabPanel("Flux",
                                       selectInput("flucom", 
                                                   label = "Choisir une commune",
                                                   choices = sort(coordCom$LIBGEO),
                                                   selected = ""),
                                       radioButtons("fluref", label = "Origine ou destination", choices = c("Origine" = "ORI", "Destination" = "DES"), selected = "ORI"),
-                                      radioButtons("flumod", label = "Mode de transport", choices = c("Tous modes" = "TOUT", "Transport en commun" = "TC", "Voiture" = "VP"), selected = "TOUT"),
                                       radioButtons("fluvar", label = "Quantité", choices = c("Nombre d'individus" = "FLOW", "Cumul de distance" = "DISTTOT"), selected = "FLOW"),
                                       sliderInput("fluthr", label = "Top", min = 2, max = 100, step = 1, value = 3),
                                       actionButton("flux_descr", "Description")
                              ),
                              
                              ####### Panneau Bassin   #####
-                             tabPanel("Structure",
+                             tabPanel("Bassin",
                                       radioButtons("pottyp", 
                                                    label = "Type de potentiel", 
                                                    choices = c("Origine" = "ori", "Destination" = "des", "Différentiel" = "dif"), 
@@ -212,26 +281,25 @@ shinyUI(bootstrapPage(
                              ),
                              
                              ####### Panneau FluxDom  #####
-                             tabPanel("Macro Flux",
+                             tabPanel("Structure",
                                       radioButtons("radioFlu", label = NULL,
                                                    choices = list("Emploi" = "iEmploi",
                                                                   "Population" = "iPopulation",
-                                                                  "Flux intra-communaux" = "iEmpPop",
+                                                                  "Population + Emploi" = "iEmpPop",
                                                                   "Flux intégrés" = "integrated",
                                                                   "Flux convergent" = "convergent",
                                                                   "Flux divergent" = "divergent"
                                                    )),
                                       actionButton("fludom_descr", "Description")
                              )
-                             
                  )
-                             ####### 
+                 ####### 
   )
   
-  # ,
-  # 
-  # 
-  # 
+
+
+  
+  
   #Graphic panel button display
   # absolutePanel( class = "panel panel-default",
   #                style = "padding : 10px",
@@ -244,5 +312,4 @@ shinyUI(bootstrapPage(
   #                                           )
   #                           )
   # )
-
   ))

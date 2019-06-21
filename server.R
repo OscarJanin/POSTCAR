@@ -6,154 +6,60 @@ shinyServer(function(input, output, session) {
   })
   
   
-  
-  # Get reactive value based on radiobutton (for 1st panel "Indicators")  ####
-  v <- reactiveValues(data = commData$TOTDES)
-  n <- reactiveValues(nom = "Emploi : ")
-  u <- reactiveValues(unit = "")
-  c <- reactiveValues(color = "PuOr")
-  b <- reactiveValues(breaks = sort(append(0,getBreaks(commData$RelBal,nclass = 6,method = "fisher-jenks"))))
-  l <- reactiveValues(layer = "taux")
-  p <- reactiveValues(polygons = "")
-  
-  observeEvent(input$radioMobi,{
-    if(input$radioMobi=="emploi"){
-      v$data <- commData$TOTDES
-      n$nom <- ""
-      u$unit <- "emplois"
-      c$color <- "PuOr"
-      b$breaks <- sort(append(0,getBreaks(commData$RelBal,nclass = 6,method = "fisher-jenks")))
-      l$layer <- "taux"
-      p$polygons <- ""}
-    if(input$radioMobi=="popact"){
-      v$data <- commData$TOTORI
-      n$nom <- ""
-      u$unit <- "actifs"
-      c$color <- "PuOr"
-      b$breaks <- sort(append(0,getBreaks(commData$RelBal,nclass = 6,method = "fisher-jenks")))
-      l$layer <- "taux"
-      p$polygons <- ""}
-    if(input$radioMobi=="soldeRel"){
-      v$data <- commData$RelBal
-      n$nom <- "Solde relatif : "
-      u$unit <- ""
-      c$color <- "PuOr"
-      b$breaks <- round(sort(append(0,getBreaks(commData$RelBal,nclass = 6,method = "fisher-jenks"))), digits = 2)
-      l$layer <- "stock"
-      p$polygons <- "communes"}
-    if(input$radioMobi=="Contention"){
-      v$data <- commData$Contention
-      n$nom <- "Auto-Contention : "
-      u$unit <- "%"
-      c$color <- "Purples"
-      b$breaks <- round(getBreaks(commData$Contention,nclass = 6,method = "fisher-jenks"), digit = 2)
-      l$layer <- "stock"
-      p$polygons <- "communes"}
-    if(input$radioMobi=="Suffisance"){
-      v$data <- commData$AutoSuff
-      n$nom <- "Auto-Suffisance : "
-      u$unit <- "%"
-      c$color <- "Purples"
-      b$breaks <- round(getBreaks(commData$AutoSuff,nclass = 6,method = "fisher-jenks"), digit = 2)
-      l$layer <- "stock"
-      p$polygons <- "communes"}
-    if(input$radioMobi=="Mobility"){
-      v$data <- commData$Mobility
-      n$nom <- "Mobilité : "
-      u$unit <- ""
-      c$color <- "Purples"
-      b$breaks <- round(getBreaks(commData$Mobility,nclass = 6,method = "fisher-jenks"), digit = 2)
-      l$layer <- "stock"
-      p$polygons <- "communes"}
-    if(input$radioMobi=="meanDistOri"){
-      v$data <- commData$MEANDISTORI
-      n$nom <- "Distance moyenne à l'origine : "
-      u$unit <- "km"
-      c$color <- "Purples"
-      b$breaks <- round(getBreaks(commData$MEANDISTORI,nclass = 6,method = "fisher-jenks"), digit = 2)
-      l$layer <- "stock"
-      p$polygons <- "communes"}
-    if(input$radioMobi=="meanDistDes"){
-      v$data <- commData$MEANDISTDES
-      n$nom <- "Distance moyenne à destination : "
-      u$unit <- "km"
-      c$color <- "Purples"
-      b$breaks <- round(getBreaks(commData$MEANDISTDES,nclass = 6,method = "fisher-jenks"), digit = 2)
-      l$layer <- "stock"
-      p$polygons <- "communes"}
-    if(input$radioMobi=="perOri"){
-      v$data <- commData$perOri
-      n$nom <- "Part des flux à l'origine : "
-      u$unit <- "%"
-      c$color <- "Purples"
-      b$breaks <- round(getBreaks(commData$perOri,nclass = 6,method = "fisher-jenks"), digit = 2)
-      l$layer <- "stock"
-      p$polygons <- "communes"}
-    if(input$radioMobi=="perDes"){
-      v$data <- commData$perDes
-      n$nom <- "Part des flux à la destination : "
-      u$unit <- "%"
-      c$color <- "Purples"
-      b$breaks <- round(getBreaks(commData$perDes,nclass = 6,method = "fisher-jenks"), digit = 2)
-      l$layer <- "stock"
-      p$polygons <- "communes"}
-  })
-  
-  
   # Get reactive value based on radiobutton (for 4th panel "flow")  ####
-  f <- reactiveValues(dataflu = domFlowJob[[2]])
-  r <- reactiveValues(rayon = (sqrt(domFlowJob[[1]][["TOTDES"]])/pi)*17)
-  c <- reactiveValues(cercle = domFlowJob[[1]])
-  vc <- reactiveValues(valCercle = domFlowJob[[1]][["TOTDES"]])
+  f <- reactiveValues(dataflu = Filter$domFlowJob[[2]])
+  r <- reactiveValues(rayon = (sqrt(Filter$domFlowJob[[1]][["TOTDES"]])/pi)*17)
+  c <- reactiveValues(cercle = Filter$domFlowJob[[1]])
+  vc <- reactiveValues(valCercle = Filter$domFlowJob[[1]][["TOTDES"]])
   nf <- reactiveValues(nom = "Emploi : ")
-  nc <- reactiveValues(comm = toupper(domFlowJob[[1]][["nomcom"]]))
+  nc <- reactiveValues(comm = toupper(Filter$domFlowJob[[1]][["nomcom"]]))
   l2 <- reactiveValues(layer2 = "")
   s <- reactiveValues(size = 1.5)
   o <- reactiveValues(opacity = 0.1)
   
   observeEvent(input$radioFlu,{
     if(input$radioFlu=="iEmploi"){
-      f$dataflu <- domFlowJob[[2]]
-      r$rayon <- (sqrt(domFlowJob[[1]][["TOTDES"]])/pi)*20
-      c$cercle <- domFlowJob[[1]]
-      vc$valCercle <- domFlowJob[[1]][["TOTDES"]]
+      f$dataflu <- Filter$domFlowJob[[2]]
+      r$rayon <- (sqrt(Filter$domFlowJob[[1]][["TOTDES"]])/pi)*20
+      c$cercle <- Filter$domFlowJob[[1]]
+      vc$valCercle <- Filter$domFlowJob[[1]][["TOTDES"]]
       nf$nom <- "Emploi : "
-      nc$comm <- toupper(domFlowJob[[1]][["nomcom"]])
-      l2$layer2 <- ""
+      nc$comm <- toupper(Filter$domFlowJob[[1]][["nomcom"]])
+      l2$layer2 <- "hotspot"
       s$size <- 1.5
       o$opacity <- 0.2}
     if(input$radioFlu=="iPopulation"){
-      f$dataflu <- domFlowPop[[2]]
-      r$rayon <- (sqrt(domFlowPop[[1]][["TOTORI"]])/pi)*20
-      c$cercle <- domFlowPop[[1]]
-      vc$valCercle <- domFlowPop[[1]][["TOTORI"]]
+      f$dataflu <- Filter$domFlowPop[[2]]
+      r$rayon <- (sqrt(Filter$domFlowPop[[1]][["TOTORI"]])/pi)*20
+      c$cercle <- Filter$domFlowPop[[1]]
+      vc$valCercle <- Filter$domFlowPop[[1]][["TOTORI"]]
       nf$nom <- "Population : "
-      nc$comm <- toupper(domFlowPop[[1]][["nomcom"]])
-      l2$layer2 <- ""
+      nc$comm <- toupper(Filter$domFlowPop[[1]][["nomcom"]])
+      l2$layer2 <- "hotspot"
       s$size <- 1.5
       o$opacity <- 0.2}
     if(input$radioFlu=="iEmpPop"){
-      f$dataflu <- domFlowJP[[2]]
-      r$rayon <- (sqrt(domFlowJP[[1]][["TOTINTRA"]])/pi)*20
-      c$cercle <- domFlowJP[[1]]
-      vc$valCercle <- domFlowJP[[1]][["TOTINTRA"]]
+      f$dataflu <- Filter$domFlowJP[[2]]
+      r$rayon <- (sqrt(Filter$domFlowJP[[1]][["TOTORIDES"]])/pi)*20
+      c$cercle <- Filter$domFlowJP[[1]]
+      vc$valCercle <- Filter$domFlowJP[[1]][["TOTORIDES"]]
       nf$nom <- "Flux intra-communaux : "
-      nc$comm <- toupper(domFlowJP[[1]][["nomcom"]])
-      l2$layer2 <- ""
+      nc$comm <- toupper(Filter$domFlowJP[[1]][["nomcom"]])
+      l2$layer2 <- "hotspot"
       s$size <- 1.5
       o$opacity <- 0.2}
     if(input$radioFlu=="integrated"){
-      f$dataflu <- icdrI
+      f$dataflu <- Filter$icdrI
       l2$layer2 <- "dominant"
       s$size <- 5
       o$opacity <- 1}
     if(input$radioFlu=="convergent"){
-      f$dataflu <- icdrC
+      f$dataflu <- Filter$icdrC
       l2$layer2 <- "dominant"
       s$size <- 0.6
       o$opacity <- 0.4}
     if(input$radioFlu=="divergent"){
-      f$dataflu <- icdrD
+      f$dataflu <- Filter$icdrD
       l2$layer2 <- "dominant"
       s$size <- 0.6
       o$opacity <- 0.4}
@@ -161,7 +67,9 @@ shinyServer(function(input, output, session) {
 
   
   # Indicators map Display  ####
+  
   output$mapIndic <- renderLeaflet({
+    index <- Get_Index()
     leaflet(options = leafletOptions(zoomControl = FALSE)) %>%
       addMapPane("background_map", zIndex = 410) %>%  # Level 1
       addMapPane("réseau_routier", zIndex = 420) %>%  # Level 2
@@ -180,14 +88,15 @@ shinyServer(function(input, output, session) {
       hideGroup("Réseau routier principal") %>% 
       hideGroup("Réseau ferré") %>% 
       hideGroup("Stations ferroviaires")%>%
-      hideGroup(l$layer) %>%
-      hideGroup(p$polygons)
+      hideGroup(index$layer) %>%
+      hideGroup(index$polygons)
   })
   
   
   observe({
     shinyjs::showElement(id = 'loading')
-    leafletProxy("mapIndic", data = commData) %>%
+    index <- Get_Index()
+    leafletProxy("mapIndic", data = index$commData) %>%
       clearShapes() %>%
       addPolygons(data = st_transform(pol, crs = 4326), stroke = TRUE, weight = 0.5, opacity = 0.5, color = "grey", fill = TRUE,
                   fillColor = "grey", fillOpacity = 0, group = "communes") %>% 
@@ -215,9 +124,9 @@ shinyServer(function(input, output, session) {
                        group = "Stations ferroviaires",
                        options = pathOptions(pane = "station")) %>%
       addCircles(
-                 lng = commData[["lon"]],
-                 lat = commData[["lat"]],
-                 radius = (sqrt(v$data)/pi)*17,
+                 lng = index$commData[["lon"]],
+                 lat = index$commData[["lat"]],
+                 radius = (sqrt(index$data)/pi)*17,
                  color = "#54278F",
                  stroke = F,
                  fillOpacity = 0.6,
@@ -229,9 +138,9 @@ shinyServer(function(input, output, session) {
                    bringToFront = F),
                  label = sprintf(
                    "<strong>%s</strong><br/> %.0f %s",
-                   toupper(commData$nomcom),
-                   v$data,
-                   u$unit
+                   toupper(index$commData$nomcom),
+                   index$data,
+                   index$unit
                  )%>% lapply(htmltools::HTML),
                  labelOptions = labelOptions(
                    style = list("font-weight" = "normal",
@@ -242,9 +151,9 @@ shinyServer(function(input, output, session) {
                  group = "stock"
                  )%>%
       addPolygons(
-        fillColor = ~colorBin(palette = c$color,
-                              bins = b$breaks,
-                              domain = v$data)(v$data),
+        fillColor = ~colorBin(palette = index$color,
+                              bins = index$breaks,
+                              domain = index$data)(index$data),
         weight = 0.7,
         opacity = 0.5,
         color = "grey",
@@ -257,10 +166,10 @@ shinyServer(function(input, output, session) {
           bringToFront = TRUE),
         label = sprintf(
           "<strong>%s</strong><br/> %s %.2f %s",
-          toupper(commData$nomcom),
-          n$nom,
-          v$data,
-          u$unit
+          toupper(index$commData$nomcom),
+          index$nom,
+          index$data,
+          index$unit
         )%>% lapply(htmltools::HTML),
         labelOptions = labelOptions(
           style = list("font-weight" = "normal", padding = "3px 8px"),
@@ -273,19 +182,21 @@ shinyServer(function(input, output, session) {
   })
   
   observe({
-    proxy <- leafletProxy("mapIndic", data =commData)
+    index <- Get_Index()
+    proxy <- leafletProxy("mapIndic", data =index$commData)
     proxy %>% clearControls()
     if (input$radioMobi=="emploi" | input$radioMobi=="popact") {
     }
     else {
-      proxy %>% addLegend(pal = colorBin(palette = c$color,
-                               bins = b$breaks,
-                               domain = v$data,pretty = TRUE),
-                values = ~v$data, opacity = 0.7,
+      proxy %>% addLegend(pal = colorBin(palette = index$color,
+                               bins = index$breaks,
+                               domain = index$data,pretty = TRUE),
+                values = ~index$data, opacity = 0.7,
                 title = NULL, position = "bottomright"
       )
     }
   })
+
   
   
   # Flow map Display ####
@@ -497,6 +408,7 @@ shinyServer(function(input, output, session) {
   
   # Dominant flow map Display  ####
   output$mapfluDom <- renderLeaflet({
+    structure <- Get_Structure()
     leaflet(options = leafletOptions(zoomControl = FALSE, incl.data=TRUE)) %>%
       addMapPane("background_map", zIndex = 410) %>%    # Level 1
       addMapPane("communes", zIndex = 420) %>%          # Level 2
@@ -519,12 +431,13 @@ shinyServer(function(input, output, session) {
       hideGroup("Réseau ferré") %>% 
       hideGroup("Communes") %>% 
       hideGroup("Stations ferroviaires")%>%
-      hideGroup(l2$layer2)
+      hideGroup(structure$layer2)
   })
   
   observe({
+    structure <- Get_Structure()
     shinyjs::showElement(id = 'loading')
-    leafletProxy(mapId = "mapfluDom", data = c(f$dataflu,r$rayon,c$col)) %>% 
+    leafletProxy(mapId = "mapfluDom", data = c(structure$dataflu,structure$rayon,structure$col)) %>% 
       clearShapes() %>%
       addPolygons(data = st_transform(pol, crs = 4326), stroke = TRUE, weight = 0.5, opacity = 0.5, color = "grey", fill = TRUE,
                   fillColor = "grey", fillOpacity = 0, group = "Communes",
@@ -535,7 +448,7 @@ shinyServer(function(input, output, session) {
       addPolylines(data = st_transform(vferre, crs = 4326), color = "grey", opacity = 0.6, weight = 1.3 ,
                    stroke = TRUE, group = "Réseau ferré",  dashArray = 2,
                    options = pathOptions(pane = "voie_ferré")) %>% 
-      addPolylines(data = st_transform(f$dataflu, crs = 4326), color = "#82909E", opacity = o$opacity, weight = s$size ,
+      addPolylines(data = st_transform(structure$dataflu, crs = 4326), color = "#82909E", opacity = structure$opacity, weight = s$size ,
                    stroke = TRUE,
                    options = pathOptions(pane = "flux")) %>%
       addCircleMarkers(lng = station$longitude, 
@@ -546,10 +459,10 @@ shinyServer(function(input, output, session) {
                        fillOpacity = 0.8,
                        group = "Stations ferroviaires",
                        options = pathOptions(pane = "station")) %>%
-      addCircles(lng = c$cercle[["lon"]], 
-                 lat = c$cercle[["lat"]], 
+      addCircles(lng = structure$cercle[["lon"]], 
+                 lat = structure$cercle[["lat"]], 
                  radius = r$rayon, 
-                 color = ~colorNumeric(palette = c("#B35605","#F1A340","#828F9E"), domain = c$cercle[["status"]])(c$cercle[["status"]]),
+                 color = ~colorNumeric(palette = c("#B35605","#F1A340","#828F9E"), domain = structure$cercle[["status"]])(structure$cercle[["status"]]),
                  stroke = F,
                  fillOpacity = 0.8,
                  highlight = highlightOptions(
@@ -560,9 +473,9 @@ shinyServer(function(input, output, session) {
                    bringToFront = F),
                  label = sprintf(
                    "<strong>%s</strong><br/> %s %.0f", 
-                   nc$comm,
-                   nf$nom,
-                   vc$valCercle
+                   structure$comm,
+                   structure$nom,
+                   structure$valCercle
                  )%>% lapply(htmltools::HTML),
                  labelOptions = labelOptions(
                    style = list("font-weight" = "normal", 
@@ -571,20 +484,48 @@ shinyServer(function(input, output, session) {
                    direction = "auto"),
                  options = pathOptions(pane = "cercles"),
                  group = "dominant"
+      ) %>% 
+      addCircles(lng = structure$hotspot[["lon"]], 
+                 lat = structure$hotspot[["lat"]], 
+                 radius = 500, 
+                 color = ifelse(structure$hotspot[["status"]] == "Hotspot de travail", "red", "blue"),
+                 stroke = F,
+                 fillOpacity = 0.8,
+                 highlight = highlightOptions(
+                   weight = 5,
+                   color = "white",
+                   opacity = 1,
+                   fillOpacity = 1,
+                   bringToFront = F),
+                 label = sprintf(
+                   "<strong>%s</strong><br/> %s", 
+                   toupper(structure$hotspot[["nomcom"]]),
+                   structure$hotspot[["status"]]
+                 )%>% lapply(htmltools::HTML),
+                 labelOptions = labelOptions(
+                   style = list("font-weight" = "normal", 
+                                padding = "3px 8px"),
+                   textsize = "15px",
+                   direction = "auto"),
+                 options = pathOptions(pane = "cercles"),
+                 group = "hotspot"
       )
     shinyjs::hideElement(id = 'loading')
   })
   
   observe({
-    proxy <- leafletProxy("mapfluDom", data =c(f$dataflu,r$rayon,c$col))
+    structure <- Get_Structure()
+    proxy <- leafletProxy("mapfluDom", data =c(structure$dataflu,structure$rayon,structure$col))
     proxy %>% clearControls()
     if (input$radioFlu=="integrated" | input$radioFlu=="convergent" | input$radioFlu=="divergent") {
-      
+      proxy %>% addLegendCustom(colors = c("red", "blue"), labels = c("Hotspot de travail", "Hotspot résidentiel"), sizes = c(20, 20))
     }
     else {
       proxy %>% addLegendCustom(colors = c("#B35605","#F1A340","#97A7B8"), labels = c("Dominant", "Intermédiaire", "Dominé"), sizes = c(25, 20, 15))
     }
   })
+  
+  
   
   
   # description ----
@@ -621,8 +562,6 @@ shinyServer(function(input, output, session) {
     ))
   })
   
-
-  
   # FUNCTIONS  ####
   SelecPotential <- reactive({
     req(input$pottyp, input$potcat)
@@ -646,16 +585,153 @@ shinyServer(function(input, output, session) {
   
   GetTopLinks <- reactive({
     req(input$fluref, input$fluvar, input$flucom, input$fluthr)
-    topLinks <- GetLinks(tabnav = tabFlows, ref = input$fluref, mod = input$flumod, varsort = input$fluvar, oneunit = substring(input$flucom, 9), thres = input$fluthr)
+    topLinks <- GetLinks(tabnav = Get_Filter_Flux(), ref = input$fluref, varsort = input$fluvar, oneunit = substring(input$flucom, 9), thres = input$fluthr)
     return(topLinks)
   })
   
   Get_CityValue <- reactive({
-    req(input$fluref, input$flucom, input$fluvar,input$flumod)
-    cityValue <- city_Value(tabflows = tabFlows, matDist = matDist, pol = pol,idpol = "insee", var = input$fluvar, od = input$fluref, mod = input$flumod, city = substr(input$flucom, 1, 5))
+    req(input$fluref, input$flucom, input$fluvar)
+    cityValue <- city_Value(tabflows = Get_Filter_Flux(), matDist = matDist, pol = pol,idpol = "insee", var = input$fluvar, od = input$fluref, city = substr(input$flucom, 1, 5))
     return(cityValue)
   })
 
+  Get_Filter_Flux <- reactive({
+    req(input$FiltreFlux)
+    shinyjs::showElement(id = 'loading')
+    if(input$FiltreFlux == "Tout"){
+      variable <- NULL
+      label <- NULL
+    } else if(input$FiltreFlux == "Agriculteurs exploitants"){
+      variable <- "CSP"
+        label <- 1
+    } else if(input$FiltreFlux == "Artisans, commerçants et chefs d'entreprise"){
+      variable <- "CSP"
+        label <- 2
+    } else if(input$FiltreFlux == "Cadres et professions intellectuelles supérieures"){
+      variable <- "CSP"
+        label <- 3
+    } else if(input$FiltreFlux == "Professions Intermédiaires"){
+      variable <- "CSP"
+        label <- 4
+    } else if(input$FiltreFlux == "Employés"){
+      variable <- "CSP"
+        label <- 5
+    } else if(input$FiltreFlux == "Ouvriers"){
+      variable <- "CSP"
+        label <- 6
+    } else if(input$FiltreFlux == "DOMICILE"){
+      variable <- "MODE"
+        label <- "DOMICILE"
+    } else if(input$FiltreFlux == "NM"){
+      variable <- "MODE"
+        label <- "NM"
+    } else if(input$FiltreFlux == "TC"){
+      variable <- "MODE"
+      label <- "TC"
+    } else if(input$FiltreFlux == "VP"){
+      variable <- "MODE"
+      label <- "VP"
+    }
+    filterFlux <- Filter_flux(tabFlows, variable = variable, label = label)
+    shinyjs::hideElement(id = 'loading')
+    return(filterFlux)
+  })
   
-})
-
+  Get_Index <- reactive({
+    req(input$radioMobi)
+    index <- Index(mobi = input$radioMobi, commData = Get_Filter_Index())
+    return(index)
+  })
+  
+  Get_Filter_Index <- reactive({
+    req(input$FiltreIndices)
+    shinyjs::showElement(id = 'loading')
+    if(input$FiltreIndices == "Tout"){
+      variable <- NULL
+      label <- NULL
+    } else if(input$FiltreIndices == "Agriculteurs exploitants"){
+      variable <- "CSP"
+      label <- 1
+    } else if(input$FiltreIndices == "Artisans, commerçants et chefs d'entreprise"){
+      variable <- "CSP"
+      label <- 2
+    } else if(input$FiltreIndices == "Cadres et professions intellectuelles supérieures"){
+      variable <- "CSP"
+      label <- 3
+    } else if(input$FiltreIndices == "Professions Intermédiaires"){
+      variable <- "CSP"
+      label <- 4
+    } else if(input$FiltreIndices == "Employés"){
+      variable <- "CSP"
+      label <- 5
+    } else if(input$FiltreIndices == "Ouvriers"){
+      variable <- "CSP"
+      label <- 6
+    } else if(input$FiltreIndices == "DOMICILE"){
+      variable <- "MODE"
+      label <- "DOMICILE"
+    } else if(input$FiltreIndices == "NM"){
+      variable <- "MODE"
+      label <- "NM"
+    } else if(input$FiltreIndices == "TC"){
+      variable <- "MODE"
+      label <- "TC"
+    } else if(input$FiltreIndices == "VP"){
+      variable <- "MODE"
+      label <- "VP"
+    }
+    filterIndice <- Filter_indice(tabFlows, idori = "ORI", iddes = "DES", idflow = "FLOW", iddist = "DIST", pol, idpol = "insee", variable = variable, label = label)
+    shinyjs::hideElement(id = 'loading')
+    return(filterIndice)
+  })
+  
+  Get_Structure <- reactive({
+    req(input$radioFlu) 
+    structure <- Structure(Flu = input$radioFlu ,domFlowJob = Get_Filter_Structure()$domFlowJob ,domFlowPop = Get_Filter_Structure()$domFlowPop,domFlowJP = Get_Filter_Structure()$domFlowJP,
+                           icdrI = Get_Filter_Structure()$icdrI,icdrC = Get_Filter_Structure()$icdrC,icdrD = Get_Filter_Structure()$icdrD, hotspot = Get_Filter_Structure()$hotspot)
+    return(structure)
+  })
+  
+  Get_Filter_Structure <- reactive({
+    req(input$FiltreStructure)
+    shinyjs::showElement(id = 'loading')
+    if(input$FiltreStructure == "Tout"){
+      variable <- NULL
+      label <- NULL
+    } else if(input$FiltreStructure == "Agriculteurs exploitants"){
+      variable <- "CSP"
+      label <- 1
+    } else if(input$FiltreStructure == "Artisans, commerçants et chefs d'entreprise"){
+      variable <- "CSP"
+      label <- 2
+    } else if(input$FiltreStructure == "Cadres et professions intellectuelles supérieures"){
+      variable <- "CSP"
+      label <- 3
+    } else if(input$FiltreStructure == "Professions Intermédiaires"){
+      variable <- "CSP"
+      label <- 4
+    } else if(input$FiltreStructure == "Employés"){
+      variable <- "CSP"
+      label <- 5
+    } else if(input$FiltreStructure == "Ouvriers"){
+      variable <- "CSP"
+      label <- 6
+    } else if(input$FiltreStructure == "DOMICILE"){
+      variable <- "MODE"
+      label <- "DOMICILE"
+    } else if(input$FiltreStructure == "NM"){
+      variable <- "MODE"
+      label <- "NM"
+    } else if(input$FiltreStructure == "TC"){
+      variable <- "MODE"
+      label <- "TC"
+    } else if(input$FiltreStructure == "VP"){
+      variable <- "MODE"
+      label <- "VP"
+    } 
+    filterStructure <- Filter_structure(tabFlows, idflow = "FLOW", before, after, pol, idpol = "insee", namepol = "nomcom", nameAgr = "Paris", variable = variable, label = label)
+    shinyjs::hideElement(id = 'loading')
+    return(filterStructure)
+  })
+  
+  })
