@@ -60,13 +60,27 @@ shinyUI(bootstrapPage(
                   #collapseExample{
                     box-shadow: 0px 0px 0px rgba(0,0,0,0);
                   }
+                  #loading-content {
+                  position: absolute;
+                  background: #999999;
+                  opacity: 0;
+                  z-index: 100;
+                  left: 0;
+                  right: 0;
+                  height: 100%;
+                  }
                   ")),
   
   # Loading wheel
   absolutePanel(top = "50%", 
                 right = "50%",
                 class = "panel panel-default",
-                shinyjs::hidden(div(id = 'loading', addSpinner(div(), spin = "cube-grid", color = "#6495ED")))
+                shinyjs::hidden(div(id = 'loading', addSpinner(div(), spin = "cube-grid", color = "#B35605")))
+  ),
+  
+  # Loading invisible panel
+  div(
+    id = "loading-content"
   ),
   
   #Display maps through the panel selection

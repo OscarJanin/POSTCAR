@@ -99,17 +99,17 @@ listPotentials <- readRDS(file = "data/listpotentials.Rds")
 
 commData <- toyspace::mob_indic(tabflows = tabFlows, idori = "ORI", iddes = "DES", idflow = "FLOW", pol = pol, idpol = "insee", iddist = "DIST")
 
-domFlowJob <- toyspace::nystuen_dacey(tabflows = tabFlowsAgr, idori = "ORIAGR", iddes = "DESAGR", idflow = "FLOW",
-                                      weight = "destination", threspct = 1, pol = polAgr, idpol = "IDAGR", iddist = "DIST")
-# domFlowJob <- readRDS("data/domFlowJob.Rds")
-domFlowPop <- toyspace::nystuen_dacey(tabflows = tabFlowsAgr, idori = "ORIAGR", iddes = "DESAGR", idflow = "FLOW",
-                                      weight = "origin", threspct = 1, pol = polAgr, idpol = "IDAGR", iddist = "DIST")
-# domFlowPop <- readRDS("data/domFlowPop.Rds")
-domFlowJP <- toyspace::nystuen_dacey(tabflows = tabFlowsAgr, idori = "ORIAGR", iddes = "DESAGR", idflow = "FLOW",
-                                     weight = "sum", threspct = 1, pol = polAgr, idpol = "IDAGR", iddist = "DIST")
-# domFlowJP <- readRDS("data/domFlowJP.Rds")
-icdr <- toyspace::label_icdr(tabflows = tabFlowsAgrNoMode, idori = "ORIAGR",iddes = "DESAGR", idflow = "FLOW", pol = polAgr, idpol = "IDAGR")
-# icdr <- readRDS(file = "data/icdr.Rds")
+# domFlowJob <- toyspace::nystuen_dacey(tabflows = tabFlowsAgr, idori = "ORIAGR", iddes = "DESAGR", idflow = "FLOW",
+#                                       weight = "destination", threspct = 1, pol = polAgr, idpol = "IDAGR", iddist = "DIST")
+domFlowJob <- readRDS("data/domFlowJob.Rds")
+# domFlowPop <- toyspace::nystuen_dacey(tabflows = tabFlowsAgr, idori = "ORIAGR", iddes = "DESAGR", idflow = "FLOW",
+                                      # weight = "origin", threspct = 1, pol = polAgr, idpol = "IDAGR", iddist = "DIST")
+domFlowPop <- readRDS("data/domFlowPop.Rds")
+# domFlowJP <- toyspace::nystuen_dacey(tabflows = tabFlowsAgr, idori = "ORIAGR", iddes = "DESAGR", idflow = "FLOW",
+                                     # weight = "sum", threspct = 1, pol = polAgr, idpol = "IDAGR", iddist = "DIST")
+domFlowJP <- readRDS("data/domFlowJP.Rds")
+# icdr <- toyspace::label_icdr(tabflows = tabFlowsAgrNoMode, idori = "ORIAGR",iddes = "DESAGR", idflow = "FLOW", pol = polAgr, idpol = "IDAGR")
+icdr <- readRDS(file = "data/icdr.Rds")
 
 icdrI <- icdr[[2]] %>% dplyr::filter(ICDR == "Integrated")
 icdrC <- icdr[[2]] %>% dplyr::filter(ICDR == "Convergent")
@@ -121,40 +121,6 @@ hotspot <- icdr[[1]]
 #####      Global        #####
 ##############################
 
-Filtering <- function(tabflows, idori, iddes, before, after, idflow, iddist, pol, idpol, namepol, nameAgr, variable, label){
-  if(is.null(variable) == TRUE | is.null(label) == TRUE){
-    tabflows <- tabflows
-  }else{
-    tabflows <- tabflows[tabflows[[variable]]==label,]
-  }
-  tabFlowsAgr <- toyspace::city_aggregate(before = before,after = after,tabflows = tabFlows,idori = "ORI",iddes = "DES")
-  tabFlowsAgrNoMode <- tabFlowsAgr %>%
-    group_by(ORIAGR, DESAGR) %>%
-    summarise(FLOW = sum(FLOW))
-  tabFlowsNoMode <- tabFlows %>% 
-    group_by(ORI, DES) %>% 
-    summarise(FLOW = sum(FLOW))
-  poptab <- toyspace::pop_tab(tabflows = tabFlows,idori = idori,iddes = iddes, idflow = idflow, iddist = iddist)
-  poptabAgr <- toyspace::pop_tab(tabflows = tabFlowsAgr,idori = "ORIAGR",iddes = "DESAGR", idflow = idflow, iddist = iddist)
-  polAgr <- toyspace::pol_aggregate(before = before, after = after, pol = pol, idpol = idpol, namepol = namepol, nameAgr = nameAgr)
-  commData <- toyspace::mob_indic(tabflows = tabFlows, idori = idori, iddes = iddes, idflow = idflow, pol = pol, idpol = idpol, iddist = iddist)
-  domFlowJob <- toyspace::nystuen_dacey(tabflows = tabFlowsAgr, idori = "ORIAGR", iddes = "DESAGR", idflow = idflow,
-                                        weight = "destination", threspct = 1, pol = polAgr, idpol = "IDAGR", iddist = "DIST")
-  domFlowPop <- toyspace::nystuen_dacey(tabflows = tabFlowsAgr, idori = "ORIAGR", iddes = "DESAGR", idflow = idflow,
-                                        weight = "origin", threspct = 1, pol = polAgr, idpol = "IDAGR", iddist = "DIST")
-  domFlowJP <- toyspace::nystuen_dacey(tabflows = tabFlowsAgr, idori = "ORIAGR", iddes = "DESAGR", idflow = idflow,
-                                       weight = "sum", threspct = 1, pol = polAgr, idpol = "IDAGR", iddist = "DIST")
-  icdr <- toyspace::label_icdr(tabflows = tabFlowsAgrNoMode, idori = "ORIAGR",iddes = "DESAGR", idflow = idflow, pol = polAgr, idpol = "IDAGR")
-  icdrI <- icdr[[2]] %>% dplyr::filter(ICDR == "Integrated")
-  icdrC <- icdr[[2]] %>% dplyr::filter(ICDR == "Convergent")
-  icdrD <- icdr[[2]] %>% dplyr::filter(ICDR == "Divergent")
-  hotspot <- icdr[[1]]
-  return(list(tablFows = tabflows, commData = commData, domFlowJob = domFlowJob, domFlowPop = domFlowPop, domFlowJP = domFlowJP, icdrI = icdrI, icdrC = icdrC, icdrD = icdrD, hotspot = hotspot))
-}
-
-Filter <- Filtering(tabflows = tabFlows, idori = "ORI", iddes = "DES", before, after, idflow = "FLOW", iddist = "DIST",
-                 pol, idpol = "insee", namepol = "nomcom", nameAgr = "Paris", variable = NULL, label = NULL)
-
 Filter_flux <- function(tabflows, variable, label){
   if(is.null(variable) == TRUE | is.null(label) == TRUE){
     tabflows <- tabflows
@@ -165,6 +131,83 @@ Filter_flux <- function(tabflows, variable, label){
   return(tabflows)
 }
 
+# get index----
+Index <- function(mobi,commdata){
+    if(mobi=="emploi"){
+      data <- commdata$TOTDES
+      nom <- ""
+      unit <- "emplois"
+      color <- "PuOr"
+      breaks <- replace(sort(append(0,getBreaks(commdata$RelBal,nclass = 6,method = "fisher-jenks"))), 6, max(commdata$RelBal)+0.1)
+      layer <- "taux"
+      polygons <- ""}
+    if(mobi=="popact"){
+      data <- commdata$TOTORI
+      nom <- ""
+      unit <- "actifs"
+      color <- "PuOr"
+      breaks <- replace(sort(append(0,getBreaks(commdata$RelBal,nclass = 6,method = "fisher-jenks"))), 6, max(commdata$RelBal)+0.1)
+      layer <- "taux"
+      polygons <- ""}
+    if(mobi=="soldeRel"){
+      data <- commdata$RelBal
+      nom <- "Solde relatif : "
+      unit <- ""
+      color <- "PuOr"
+      breaks <- sort(round(replace(append(0,getBreaks(commdata$RelBal,nclass = 6,method = "fisher-jenks")), 8, max(commdata$RelBal)+0.1), digit = 2))
+      layer <- "stock"
+      polygons <- "communes"}
+    if(mobi=="Contention"){
+      data <- commdata$Contention
+      nom <- "Auto-Contention : "
+      unit <- "%"
+      color <- "Purples"
+      breaks <- sort(replace(round(getBreaks(commdata$Contention,nclass = 6,method = "fisher-jenks"), digit = 2), 7, max(commdata$Contention)+0.1))
+      layer <- "stock"
+      polygons <- "communes"}
+    if(mobi=="Suffisance"){
+      data <- commdata$AutoSuff
+      nom <- "Auto-Suffisance : "
+      unit <- "%"
+      color <- "Purples"
+      breaks <- sort(replace(round(getBreaks(commdata$AutoSuff,nclass = 6,method = "fisher-jenks"), digit = 2), 7, max(commdata$AutoSuff)+0.1))
+      layer <- "stock"
+      polygons <- "communes"}
+    if(mobi=="meanDistOri"){
+      data <- commdata$MEANDISTORI
+      nom <- "Distance moyenne à l'origine : "
+      unit <- "km"
+      color <- "Purples"
+      breaks <- sort(replace(round(getBreaks(commdata$MEANDISTORI,nclass = 6,method = "fisher-jenks"), digit = 2), 7, max(commdata$MEANDISTORI)+0.1))
+      layer <- "stock"
+      polygons <- "communes"}
+    if(mobi=="meanDistDes"){
+      data <- commdata$MEANDISTDES
+      nom <- "Distance moyenne à destination : "
+      unit <- "km"
+      color <- "Purples"
+      breaks <- sort(replace(round(getBreaks(commdata$MEANDISTDES,nclass = 6,method = "fisher-jenks"), digit = 2), 7, max(commdata$MEANDISTDES)+0.1))
+      layer <- "stock"
+      polygons <- "communes"}
+    if(mobi=="perOri"){
+      data <- commdata$perOri
+      nom <- "Part des flux à l'origine : "
+      unit <- "%"
+      color <- "Purples"
+      breaks <- sort(replace(round(getBreaks(commdata$perOri,nclass = 6,method = "fisher-jenks"), digit = 2), 7, max(commdata$perOri)+0.1))
+      layer <- "stock"
+      polygons <- "communes"}
+    if(mobi=="perDes"){
+      data <- commdata$perDes
+      nom <- "Part des flux à la destination : "
+      unit <- "%"
+      color <- "Purples"
+      breaks <- sort(replace(round(getBreaks(commdata$perDes,nclass = 6,method = "fisher-jenks"), digit = 2), 7, max(commdata$perDes)+0.1))
+      layer <- "stock"
+      polygons <- "communes"}
+  return(list(data = data,nom = nom,unit = unit,color = color,breaks = breaks,layer = layer,polygons = polygons, commdata = commdata))
+}
+
 Filter_indice <- function(tabflows, idori, iddes, idflow, iddist, pol, idpol,variable, label){
   shinyjs::showElement(id = 'loading')
   if(is.null(variable) == TRUE | is.null(label) == TRUE){
@@ -172,87 +215,9 @@ Filter_indice <- function(tabflows, idori, iddes, idflow, iddist, pol, idpol,var
   }else{
     tabflows <- tabflows[tabflows[[variable]]==label,]
   }
-  commData <- toyspace::mob_indic(tabflows = tabflows, idori = idori, iddes = iddes, idflow = idflow, pol = pol, idpol = idpol, iddist = iddist)
+  commdata <- toyspace::mob_indic(tabflows = tabflows, idori = idori, iddes = iddes, idflow = idflow, pol = pol, idpol = idpol, iddist = iddist)
   shinyjs::hideElement(id = 'loading')
-  return(commData)
-}
-
-
-# get index----
-Index <- function(mobi,commData){
-    if(mobi=="emploi"){
-      data <- commData$TOTDES
-      nom <- ""
-      unit <- "emplois"
-      color <- "PuOr"
-      breaks <- sort(append(0,getBreaks(commData$RelBal,nclass = 6,method = "fisher-jenks")))
-      layer <- "taux"
-      polygons <- ""}
-    if(mobi=="popact"){
-      data <- commData$TOTORI
-      nom <- ""
-      unit <- "actifs"
-      color <- "PuOr"
-      breaks <- sort(append(0,getBreaks(commData$RelBal,nclass = 6,method = "fisher-jenks")))
-      layer <- "taux"
-      polygons <- ""}
-    if(mobi=="soldeRel"){
-      data <- commData$RelBal
-      nom <- "Solde relatif : "
-      unit <- ""
-      color <- "PuOr"
-      breaks <- round(sort(append(0,getBreaks(commData$RelBal,nclass = 6,method = "fisher-jenks"))), digits = 2)
-      layer <- "stock"
-      polygons <- "communes"}
-    if(mobi=="Contention"){
-      data <- commData$Contention
-      nom <- "Auto-Contention : "
-      unit <- "%"
-      color <- "Purples"
-      breaks <- round(getBreaks(commData$Contention,nclass = 6,method = "fisher-jenks"), digit = 2)
-      layer <- "stock"
-      polygons <- "communes"}
-    if(mobi=="Suffisance"){
-      data <- commData$AutoSuff
-      nom <- "Auto-Suffisance : "
-      unit <- "%"
-      color <- "Purples"
-      breaks <- round(getBreaks(commData$AutoSuff,nclass = 6,method = "fisher-jenks"), digit = 2)
-      layer <- "stock"
-      polygons <- "communes"}
-    if(mobi=="meanDistOri"){
-      data <- commData$MEANDISTORI
-      nom <- "Distance moyenne à l'origine : "
-      unit <- "km"
-      color <- "Purples"
-      breaks <- round(getBreaks(commData$MEANDISTORI,nclass = 6,method = "fisher-jenks"), digit = 2)
-      layer <- "stock"
-      polygons <- "communes"}
-    if(mobi=="meanDistDes"){
-      data <- commData$MEANDISTDES
-      nom <- "Distance moyenne à destination : "
-      unit <- "km"
-      color <- "Purples"
-      breaks <- round(getBreaks(commData$MEANDISTDES,nclass = 6,method = "fisher-jenks"), digit = 2)
-      layer <- "stock"
-      polygons <- "communes"}
-    if(mobi=="perOri"){
-      data <- commData$perOri
-      nom <- "Part des flux à l'origine : "
-      unit <- "%"
-      color <- "Purples"
-      breaks <- round(getBreaks(commData$perOri,nclass = 6,method = "fisher-jenks"), digit = 2)
-      layer <- "stock"
-      polygons <- "communes"}
-    if(mobi=="perDes"){
-      data <- commData$perDes
-      nom <- "Part des flux à la destination : "
-      unit <- "%"
-      color <- "Purples"
-      breaks <- round(getBreaks(commData$perDes,nclass = 6,method = "fisher-jenks"), digit = 2)
-      layer <- "stock"
-      polygons <- "communes"}
-  return(list(data = data,nom = nom,unit = unit,color = color,breaks = breaks,layer = layer,polygons = polygons, commData = commData))
+  return(commdata)
 }
 
 # get structure----
@@ -376,6 +341,7 @@ PotentialContour <- function(ras) {
 }
 
 # get top links ----
+
 GetLinks <- function(tabnav, ref, varsort, oneunit, thres){
   refLib <- paste0(ref, "LIB")
   oriDes <- paste0(c("ORI", "DES"), "LIB")
@@ -387,9 +353,14 @@ GetLinks <- function(tabnav, ref, varsort, oneunit, thres){
     tabSel <- tabSel[tabSel[[refLib]] == oneunit, ]
     tabSel <- tabSel[order(tabSel[[varsort]], decreasing = TRUE), ]
   nbRows <- ifelse(thres > nrow(tabSel), nrow(tabSel), thres)
-  spLinks <- getLinkLayer(x = pol, df = tabSel[1:nbRows, c("ORI", "DES")])
+  if (dim(tabSel)[1] == 0) {
+    #get a "false" link with the same departure and arrival so it seems unexisting
+    spLinks <- getLinkLayer(x = pol, df = tabFlows[1:0, c("ORI", "DES")])
+  }else{
+    spLinks <- getLinkLayer(x = pol, df = tabSel[1:nbRows, c("ORI", "DES")])
+  }
   topDes <- spLinks
-  return(topDes)
+  return(list(topDes = topDes,layer = layer))
 }
 
 # get city value ----
@@ -426,7 +397,12 @@ city_Value <- function(tabflows,matDist,pol,idpol,var, od, city){
     index <- "km"
   }
   spcom <- dplyr::left_join(pol,tabCity, by = c("insee" ="ID"))
-  return(list( SPCOM = spcom, INDEX = index))
+  if(sum(tabCityFlow$DATA) == 0 |sum(tabCityFlow$DATA) == 0){
+    breaks <- c(0,1)
+  }else{
+    breaks <- round(replace(getBreaks(spcom$DATA, nclass = 6,method = "fisher-jenks"),7,max(spcom$DATA)+1))
+  }
+  return(list( SPCOM = spcom, INDEX = index, BREAKS = breaks))
 }
 
 addLegendCustom <- function(map, colors, labels, sizes, opacity = 0.8){
