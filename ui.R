@@ -5,7 +5,7 @@ shinyUI(bootstrapPage(
   
   tags$style(HTML("
                   body {
-                    font-family:'Helvetica';
+                  font-family:'Helvetica';
                   }
                   #loading {
                   position: relative;
@@ -34,31 +34,31 @@ shinyUI(bootstrapPage(
                   overflow: auto;
                   }
                   .panel-group {
-                    margin-bottom: 0px;
+                  margin-bottom: 0px;
                   }
                   .leaflet .legend i{
-                    border-radius: 50%;
-                    width: 10px;
-                    height: 10px;
-                    margin-bottom: 10px;
+                  border-radius: 50%;
+                  width: 10px;
+                  height: 10px;
+                  margin-bottom: 10px;
                   }
                   #tabPanel{
-                    font-weight: bold;
+                  font-weight: bold;
                   }
                   .panel-title{
-                    font-weight: bold;
+                  font-weight: bold;
                   }
                   .nav-tabs > li:hover {
-                   text-decoration: underline;
+                  text-decoration: underline;
                   }
                   #Filtre{
-                   text-align: center;
+                  text-align: center;
                   }
                   .panel{
-                    box-shadow: 2px 2px 4px rgba(0,0,0,0.5);
+                  box-shadow: 2px 2px 4px rgba(0,0,0,0.5);
                   }
                   #collapseExample{
-                    box-shadow: 0px 0px 0px rgba(0,0,0,0);
+                  box-shadow: 0px 0px 0px rgba(0,0,0,0);
                   }
                   #loading-content {
                   position: absolute;
@@ -91,7 +91,8 @@ shinyUI(bootstrapPage(
                   right = "25%",
                   left = "25%",
                   class = "panel panel-default",
-                  style = "padding : 10px",
+                  style = "padding : 10px;
+                  text-align: center",
                   radioButtons("FiltreIndices",
                                label = NULL,
                                choices = list("Tout" = "Tout",
@@ -116,7 +117,8 @@ shinyUI(bootstrapPage(
                   right = "25%",
                   left = "25%",
                   class = "panel panel-default",
-                  style = "padding : 10px",
+                  style = "padding : 10px;
+                  text-align: center",
                   radioButtons("FiltreFlux",
                                label = NULL,
                                choices = list("Tout" = "Tout",
@@ -135,17 +137,14 @@ shinyUI(bootstrapPage(
     )
   ),
   conditionalPanel(
-    condition = "input.tabs=='Bassin'",
-    leafletOutput("mappot", width="100%", height = "100%") 
-  ),
-  conditionalPanel(
     condition = "input.tabs=='Structure'",
     leafletOutput("mapfluDom", width="100%", height = "100%"),
     absolutePanel(bottom = "2%",
                   right = "25%",
                   left = "25%",
                   class = "panel panel-default",
-                  style = "padding : 10px",
+                  style = "padding : 10px;
+                  text-align: center",
                   radioButtons("FiltreStructure",
                                label = NULL,
                                choices = list("Tout" = "Tout",
@@ -270,39 +269,12 @@ shinyUI(bootstrapPage(
                                       sliderInput("fluthr", label = "Top", min = 2, max = 100, step = 1, value = 3),
                                       actionButton("flux_descr", "Description")
                              ),
-                             
-                             ####### Panneau Bassin   #####
-                             tabPanel("Bassin",
-                                      radioButtons("pottyp", 
-                                                   label = "Type de potentiel", 
-                                                   choices = c("Origine" = "ori", "Destination" = "des", "Différentiel" = "dif"), 
-                                                   selected = "ori"),
-                                      radioButtons("potcat",
-                                                   label = "Catégorie de population", 
-                                                   choices = c("Tout" = "tout", 
-                                                               "Femme" = "femm", 
-                                                               "Homme" = "homm",
-                                                               "Agriculteur" = "agri", 
-                                                               "Artisan-commerçant" = "arti", 
-                                                               "Prof. supérieure" = "cadr",
-                                                               "Prof. intermédiaire" = "inte",
-                                                               "Employé" = "empl",
-                                                               "Ouvrier" = "ouvr",
-                                                               "Automobiliste" = "vp", 
-                                                               "Transporté collectivement" = "tc"),
-                                                   selected = "tout"),
-                                      actionButton("pool_descr", "Description")
-                             ),
-                             
                              ####### Panneau FluxDom  #####
                              tabPanel("Structure",
                                       radioButtons("radioFlu", label = NULL,
                                                    choices = list("Emploi" = "iEmploi",
                                                                   "Population" = "iPopulation",
-                                                                  "Population + Emploi" = "iEmpPop",
-                                                                  "Flux intégrés" = "integrated",
-                                                                  "Flux convergent" = "convergent",
-                                                                  "Flux divergent" = "divergent"
+                                                                  "Population + Emploi" = "iEmpPop"
                                                    )),
                                       actionButton("fludom_descr", "Description")
                              )
@@ -310,8 +282,8 @@ shinyUI(bootstrapPage(
                  ####### 
   )
   
-
-
+  
+  
   
   
   #Graphic panel button display
@@ -326,4 +298,4 @@ shinyUI(bootstrapPage(
   #                                           )
   #                           )
   # )
-  ))
+))
